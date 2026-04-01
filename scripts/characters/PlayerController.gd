@@ -42,6 +42,7 @@ var _state_timer : float = 0.0
 
 # カメラのY軸回転角度（ラジアン）
 var _camera_yaw : float = 0.0
+var _spring_arm_pitch : float = 0.0 # 初期X回転を保存
 
 # ----------------------------------------------------------
 # ノード参照
@@ -72,10 +73,21 @@ func _ready() -> void:
 		hitbox_left = $HitboxLeft
 		hitbox_left.monitoring = false
 
-	# SpringArm をキャラ本体の回転から独立させる
+	# SpringArm をキャラ本体から完全に切り離す（180度反転時のガタつき防止）
 	if spring_arm:
-		spring_arm.top_level = true
-		spring_arm.global_position = global_position + Vector3(0, 1, 0)
+		_spring_arm_pitch = spring_arm.rotation.x
+		call_deferred("_defer_detach_camera")
+
+func _defer_detach_camera() -> void:
+	if not is_inside_tree() or not spring_arm: return
+	remove_child(spring_arm)
+	get_tree().current_scene.add_child(spring_arm)
+	spring_arm.add_excluded_object(self.get_rid())
+
+func _exit_tree() -> void:
+	# 孤児になったカメラノードのお掃除
+	if spring_arm and spring_arm.get_parent() != self:
+		spring_arm.queue_free()
 
 # ----------------------------------------------------------
 # メインループ
@@ -106,21 +118,25 @@ func _handle_camera_rotation(delta: float) -> void:
 	if not spring_arm:
 		return
 	
-	# 右スティック（設定上の camera_left / camera_right）や左右キーの入力
-	var rot_input := Input.get_axis("camera_left", "camera_right")
+	var rot_input := 0.0
+	if InputMap.has_action("camera_left") and InputMap.has_action("camera_right"):
+		rot_input = Input.get_axis("camera_left", "camera_right")
 	
-	# rot_input がプラス（右）のとき、Yawをマイナス（右回り）に回転させるのが一般的
 	_camera_yaw -= deg_to_rad(rot_input * camera_rotate_speed * delta)
-	
-	# top_level=true なので親の回転は受けないが、明示的にグローバル回転を上書きして安全性を高める
-	spring_arm.global_rotation.y = _camera_yaw
 
 # ----------------------------------------------------------
-# SpringArm をキャラに追従させる
+# SpringArm をキャラに数学的に追従させる
 # ----------------------------------------------------------
 func _update_spring_arm_position() -> void:
-	if spring_arm:
-		spring_arm.global_position = global_position + Vector3(0, 1.0, 0)
+	if is_dummy or not spring_arm or not spring_arm.is_inside_tree():
+		return
+		
+	# Basis（回転行列）をクォータニオンで安全に構築し直し、オイラー角の反転特異点を回避
+	var q_yaw = Quaternion(Vector3.UP, _camera_yaw)
+	var q_pitch = Quaternion(Vector3.RIGHT, _spring_arm_pitch)
+	var new_basis = Basis(q_yaw * q_pitch)
+	
+	spring_arm.global_transform = Transform3D(new_basis, global_position + Vector3(0, 1.0, 0))
 
 # ----------------------------------------------------------
 # 移動処理（WASD）
