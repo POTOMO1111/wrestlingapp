@@ -42,7 +42,7 @@ var _state_timer : float = 0.0
 
 # カメラのY軸回転角度（ラジアン）
 var _camera_yaw : float = 0.0
-var _spring_arm_pitch : float = 0.0 # 初期X回転を保存
+var _spring_arm_pitch : float = deg_to_rad(-25.0) # 従来通り見下ろし角度(-25度)を固定でセット
 
 # ----------------------------------------------------------
 # ノード参照
@@ -75,7 +75,6 @@ func _ready() -> void:
 
 	# SpringArm をキャラ本体から完全に切り離す（180度反転時のガタつき防止）
 	if spring_arm:
-		_spring_arm_pitch = spring_arm.rotation.x
 		call_deferred("_defer_detach_camera")
 
 func _defer_detach_camera() -> void:

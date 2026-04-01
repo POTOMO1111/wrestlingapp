@@ -32,6 +32,7 @@ var _time_label : Label = null
 var _hp_bars : Dictionary = {}
 var _stamina_bars : Dictionary = {}
 var _pause_menu : Control = null
+var _btn_resume_pause : Button = null
 
 ## シグナル
 signal match_started
@@ -44,6 +45,7 @@ signal hp_updated(player_id, current, maximum)
 # 初期化
 # ----------------------------------------------------------
 func _ready() -> void:
+	_setup_ui_inputs()
 	_load_config()
 	_setup_debug_ui()
 	hide_battle_ui() # メニュー画面などでは非表示にしておく
@@ -51,6 +53,27 @@ func _ready() -> void:
 	# テスト起動用に、メイン画面(main.tscn)から直接起動された場合は自動的に試合開始
 	if get_tree().current_scene.name == "Main":
 		start_match()
+
+func _setup_ui_inputs() -> void:
+	var key_mappings = {
+		"ui_up": KEY_W,
+		"ui_down": KEY_S,
+		"ui_left": KEY_A,
+		"ui_right": KEY_D,
+		"ui_accept": KEY_J
+	}
+	for action in key_mappings:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action)
+		var ev = InputEventKey.new()
+		ev.physical_keycode = key_mappings[action]
+		InputMap.action_add_event(action, ev)
+		
+	# ジョイパッドの決定ボタン (0: Attack Heavy / 1: Jump) を確実に追加
+	for btn_id in [0, 1]:
+		var ev_joy = InputEventJoypadButton.new()
+		ev_joy.button_index = btn_id
+		InputMap.action_add_event("ui_accept", ev_joy)
 
 func _load_config() -> void:
 	var config = ConfigFile.new()
@@ -193,12 +216,12 @@ func _setup_debug_ui() -> void:
 	label.add_theme_font_size_override("font_size", 64)
 	p_vbox.add_child(label)
 	
-	var btn_resume = Button.new()
-	btn_resume.text = "RESUME"
-	btn_resume.custom_minimum_size = Vector2(400, 60)
-	btn_resume.add_theme_font_size_override("font_size", 32)
-	btn_resume.pressed.connect(toggle_pause)
-	p_vbox.add_child(btn_resume)
+	_btn_resume_pause = Button.new()
+	_btn_resume_pause.text = "RESUME"
+	_btn_resume_pause.custom_minimum_size = Vector2(400, 60)
+	_btn_resume_pause.add_theme_font_size_override("font_size", 32)
+	_btn_resume_pause.pressed.connect(toggle_pause)
+	p_vbox.add_child(_btn_resume_pause)
 	
 	var btn_chars = Button.new()
 	btn_chars.text = "CHARACTER SELECT"
@@ -358,7 +381,10 @@ func toggle_pause() -> void:
 	if match_state == MatchState.FIGHTING:
 		match_state = MatchState.PAUSE
 		get_tree().paused = true
-		if _pause_menu: _pause_menu.visible = true
+		if _pause_menu: 
+			_pause_menu.visible = true
+			if _btn_resume_pause:
+				_btn_resume_pause.grab_focus()
 		AudioManager.set_ducking(true)
 	elif match_state == MatchState.PAUSE:
 		match_state = MatchState.FIGHTING

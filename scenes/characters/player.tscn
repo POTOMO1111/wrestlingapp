@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://qpnuh44k86iu"]
 
 [ext_resource type="Script" uid="uid://blx6au5oncg5y" path="res://scripts/characters/PlayerController.gd" id="1_rp718"]
+[ext_resource type="Script" uid="uid://cwaxfaqxixgpl" path="res://scripts/combat/HitboxController.gd" id="2_hitbox"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_yewv4"]
 
@@ -28,6 +29,7 @@ tree_root = SubResource("AnimationNodeStateMachine_dyp2m")
 anim_player = NodePath("../AnimationPlayer")
 
 [node name="HitboxRight" type="Area3D" parent="." unique_id=2082913437]
+script = ExtResource("2_hitbox")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="HitboxRight" unique_id=1533924575]
 shape = SubResource("SphereShape3D_atpat")

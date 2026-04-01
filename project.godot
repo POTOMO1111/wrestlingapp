@@ -21,7 +21,6 @@ AudioManager="*uid://v2mtb0jpnlx2"
 GameManager="*uid://cxrgtcb3beq6v"
 SceneManager="*uid://ctpsj6eb4hm4g"
 CharacterBase="*uid://xx3iftvmvnmx"
-HitboxController="*uid://cwaxfaqxixgpl"
 GrappleSystem="*res://scripts/combat/GrappleSystem.gd"
 
 [display]

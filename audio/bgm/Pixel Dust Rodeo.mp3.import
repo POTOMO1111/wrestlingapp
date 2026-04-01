@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://754b1e7yn3uy"
+path="res://.godot/imported/Pixel Dust Rodeo.mp3-859bc50a0dd13ad33fd40bd300b66b77.mp3str"
+
+[deps]
+
+source_file="res://audio/bgm/Pixel Dust Rodeo.mp3"
+dest_files=["res://.godot/imported/Pixel Dust Rodeo.mp3-859bc50a0dd13ad33fd40bd300b66b77.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
