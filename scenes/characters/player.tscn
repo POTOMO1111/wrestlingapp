@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://qpnuh44k86iu"]
+
+[ext_resource type="Script" uid="uid://blx6au5oncg5y" path="res://scripts/characters/PlayerController.gd" id="1_rp718"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_yewv4"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_76oj4"]
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_dyp2m"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_atpat"]
+
+[node name="Player" type="CharacterBody3D" unique_id=545509060]
+script = ExtResource("1_rp718")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1135109030]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_yewv4")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1986636244]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CapsuleMesh_76oj4")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=20789514]
+
+[node name="AnimationTree" type="AnimationTree" parent="." unique_id=1664368482]
+tree_root = SubResource("AnimationNodeStateMachine_dyp2m")
+anim_player = NodePath("../AnimationPlayer")
+
+[node name="HitboxRight" type="Area3D" parent="." unique_id=2082913437]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="HitboxRight" unique_id=1533924575]
+shape = SubResource("SphereShape3D_atpat")
+
+[node name="SpringArm3D" type="SpringArm3D" parent="." unique_id=896859231]
+transform = Transform3D(1, 0, 0, 0, 0.9396926, 0.34202012, 0, -0.34202012, 0.9396926, 0, 0, 0)
+spring_length = 5.0
+
+[node name="Camera3D" type="Camera3D" parent="SpringArm3D" unique_id=1461169933]
