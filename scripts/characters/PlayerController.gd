@@ -63,14 +63,14 @@ func _ready() -> void:
 		if anim_tree.tree_root:
 			anim_state = anim_tree.get("parameters/playback")
 
-	if has_node("HitboxRight"):
-		hitbox_right = $HitboxRight
+	hitbox_right = find_child("HitboxRight", true, false)
+	if hitbox_right:
 		hitbox_right.monitoring = false
-		if not hitbox_right.grapple_connected.is_connected(_on_grapple_connected):
+		if hitbox_right.has_signal("grapple_connected") and not hitbox_right.grapple_connected.is_connected(_on_grapple_connected):
 			hitbox_right.grapple_connected.connect(_on_grapple_connected)
 
-	if has_node("HitboxLeft"):
-		hitbox_left = $HitboxLeft
+	hitbox_left = find_child("HitboxLeft", true, false)
+	if hitbox_left:
 		hitbox_left.monitoring = false
 
 	# SpringArm をキャラ本体から完全に切り離す（180度反転時のガタつき防止）
@@ -92,6 +92,12 @@ func _exit_tree() -> void:
 # メインループ
 # ----------------------------------------------------------
 func _physics_process(delta: float) -> void:
+	if is_dead:
+		_apply_gravity(delta)
+		move_and_slide()
+		_update_spring_arm_position()
+		return
+
 	_tick_cooldowns(delta)
 	_apply_gravity(delta)
 	_handle_camera_rotation(delta)
@@ -255,7 +261,7 @@ func _start_attack(state: State) -> void:
 			hitbox_right.attack_type = 0
 			hitbox_right.damage = 10
 			hitbox_right.knockback_force = 3.0
-			velocity = global_transform.basis.z * -3.0 # 少し踏み込む
+			velocity = global_transform.basis.z * -4.0 # 少し踏み込む
 			
 	_enable_hitbox(state)
 	_attack_pending = true
@@ -315,7 +321,7 @@ func _tick_cooldowns(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0, 20.0 * delta)
 		
 		# AnimationTree側のノードが "Idle" に戻ったらスクリプトも復帰させる（アニメの長さに自動追従）
-		if anim_state and anim_state.get_current_node() == "Idle" and _state_timer > 0.1:
+		if anim_state and anim_state.get_current_node() == "Idle" and _state_timer > 0.3:
 			_attack_pending = false
 			_disable_all_hitboxes()
 			_change_state(State.IDLE)
@@ -347,6 +353,9 @@ func _disable_all_hitboxes() -> void:
 # ダメージ受け取り（外部から呼ばれる）
 # ----------------------------------------------------------
 func take_damage(amount: int, knockback_dir: Vector3 = Vector3.ZERO) -> void:
+	if is_dead:
+		return
+
 	if current_state == State.BLOCK:
 		amount = int(amount * 0.2)
 
@@ -354,6 +363,13 @@ func take_damage(amount: int, knockback_dir: Vector3 = Vector3.ZERO) -> void:
 
 	if knockback_dir != Vector3.ZERO:
 		velocity += knockback_dir * 4.0
+
+	# 死亡時はダウン状態へ移行
+	if is_dead:
+		_change_state(State.DOWN)
+		if anim_state:
+			anim_state.travel("Down")
+		return
 
 	_change_state(State.HIT)
 	await get_tree().create_timer(0.4).timeout
@@ -387,7 +403,7 @@ func play_grapple_attack_anim(anim_name: String) -> void:
 	_attack_pending = true
 
 # ----------------------------------------------------------
-# デバッグ
+# 毎フレーム処理（親クラスのスタミナ回復を通すため必須）
 # ----------------------------------------------------------
-func _process(_delta: float) -> void:
-	pass
+func _process(delta: float) -> void:
+	super._process(delta)

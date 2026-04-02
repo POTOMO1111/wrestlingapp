@@ -32,6 +32,8 @@ var _time_label : Label = null
 var _hp_bars : Dictionary = {}
 var _stamina_bars : Dictionary = {}
 var _pause_menu : Control = null
+var _match_end_menu : Control = null
+var _match_result_label : Label = null
 var _btn_resume_pause : Button = null
 
 ## シグナル
@@ -237,6 +239,37 @@ func _setup_debug_ui() -> void:
 	btn_title.pressed.connect(_on_pause_title_pressed)
 	p_vbox.add_child(btn_title)
 
+	# ----- Match End Menu -----
+	_match_end_menu = PanelContainer.new()
+	_match_end_menu.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var end_style = StyleBoxFlat.new()
+	end_style.bg_color = Color(0, 0, 0, 0.5)
+	_match_end_menu.add_theme_stylebox_override("panel", end_style)
+	_ui_canvas.add_child(_match_end_menu)
+	_match_end_menu.visible = false
+	
+	var end_center = CenterContainer.new()
+	_match_end_menu.add_child(end_center)
+	
+	var end_vbox = VBoxContainer.new()
+	end_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	end_vbox.add_theme_constant_override("separation", 30)
+	end_center.add_child(end_vbox)
+	
+	_match_result_label = Label.new()
+	_match_result_label.text = "YOU WIN!"
+	_match_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_match_result_label.add_theme_font_size_override("font_size", 90)
+	_match_result_label.add_theme_constant_override("outline_size", 8)
+	end_vbox.add_child(_match_result_label)
+	
+	var btn_return_select = Button.new()
+	btn_return_select.text = "キャラ選択へ戻る"
+	btn_return_select.custom_minimum_size = Vector2(400, 60)
+	btn_return_select.add_theme_font_size_override("font_size", 32)
+	btn_return_select.pressed.connect(_on_pause_chars_pressed)
+	end_vbox.add_child(btn_return_select)
+
 func _create_bar(color: Color, height: float = 30.0) -> ProgressBar:
 	var bar = ProgressBar.new()
 	bar.custom_minimum_size = Vector2(300, height)
@@ -341,20 +374,27 @@ func apply_damage(player_id: int, amount: int) -> void:
 func on_fighter_down(loser_id: int) -> void:
 	if match_state != MatchState.FIGHTING:
 		return
-	match_state = MatchState.ROUND_END
+	match_state = MatchState.MATCH_END
 
 	var winner_id := 3 - loser_id  # 1なら2、2なら1
 	round_wins[winner_id] += 1
-	round_ended.emit(winner_id)
+	match_ended.emit(winner_id)
+	
+	# ダウンモーションを見るために少し待つ
+	await get_tree().create_timer(1.5).timeout
+	_show_match_result(winner_id)
 
-	# 試合終了判定
-	if round_wins[winner_id] >= ceili(max_rounds / 2.0):
-		match_state = MatchState.MATCH_END
-		match_ended.emit(winner_id)
+func _show_match_result(winner_id: int) -> void:
+	if not _match_end_menu: return
+	_match_end_menu.visible = true
+	var end_style = _match_end_menu.get_theme_stylebox("panel") as StyleBoxFlat
+	
+	if winner_id == 1: # 自分が勝った場合
+		_match_result_label.text = "YOU WIN!"
+		end_style.bg_color = Color(0.2, 0.4, 0.8, 0.5) # 青み
 	else:
-		# 次のラウンドへ（3秒後）
-		await get_tree().create_timer(3.0).timeout
-		_start_next_round()
+		_match_result_label.text = "YOU LOSE..."
+		end_style.bg_color = Color(0.8, 0.2, 0.2, 0.5) # 赤み
 
 # ----------------------------------------------------------
 # 次のラウンド開始
@@ -398,6 +438,7 @@ func _on_pause_chars_pressed() -> void:
 	AudioManager.set_ducking(false)
 	hide_battle_ui()
 	if _pause_menu: _pause_menu.visible = false
+	if _match_end_menu: _match_end_menu.visible = false
 	SceneManager.change_scene_to_file("res://scenes/ui/char_select.tscn")
 
 func _on_pause_title_pressed() -> void:

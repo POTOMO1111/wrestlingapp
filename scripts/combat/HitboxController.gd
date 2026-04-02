@@ -24,11 +24,14 @@ var _debug_mesh : MeshInstance3D = null
 
 func _ready() -> void:
 	# HurtBox レイヤー（Layer 5）とだけ重なるよう設定
-	# ※ インスペクターで設定してもOK
+	# ※ インスペクターでの設定ミスを防ぐため、強制的に Layer 1 (CharacterBody) と Layer 5 (HurtBox) を両方検知させる
 	monitoring = false
+	collision_mask = 1 | 16
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
 	_setup_debug_mesh()
+	set_physics_process(true)
+
 
 # ----------------------------------------------------------
 # 可視化エフェクト（アニメーションが無い間の措置）
@@ -68,6 +71,12 @@ func _setup_debug_mesh() -> void:
 func activate() -> void:
 	_hit_targets.clear()
 	monitoring = true
+	print("[HitboxController] activate(): Hitbox is now active!")
+	
+	# アクティブにした瞬間重なっているボディを強制抽出
+	var bodies = get_overlapping_bodies()
+	for b in bodies:
+		_on_body_entered(b)
 	
 	if _debug_mesh:
 		_debug_mesh.visible = true
@@ -134,3 +143,9 @@ func _on_body_entered(body: Node3D) -> void:
 				GrappleSystem._spawn_text_effect("SMASH!", body.global_position + Vector3(0, 2.0, 0), Color.ORANGE)
 			else:
 				GrappleSystem._spawn_text_effect("HIT!", body.global_position + Vector3(0, 2.0, 0), Color.WHITE)
+
+func _physics_process(delta: float) -> void:
+	# Godot4のArea3D特有の「重なったまま動かないとbody_enteredが発火しない」問題の回避策
+	if monitoring:
+		for b in get_overlapping_bodies():
+			_on_body_entered(b)

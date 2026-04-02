@@ -58,6 +58,8 @@ func take_damage(amount: int, knockback_dir: Vector3 = Vector3.ZERO) -> void:
 	if is_dead:
 		return
 
+	print("!!! [", self.name, "] TOOK DAMAGE! amount:", amount, ", current HP before:", current_hp)
+
 	current_hp = max(0, current_hp - amount)
 	hp_changed.emit(player_id, current_hp, max_hp)
 
