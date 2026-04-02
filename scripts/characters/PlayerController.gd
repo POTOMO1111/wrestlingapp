@@ -286,8 +286,8 @@ func _update_animation() -> void:
 		State.IDLE:         anim_state.travel("Idle")
 		State.WALK:         anim_state.travel("Walk")
 		State.RUN:          anim_state.travel("Run")
-		State.JUMP:         anim_state.travel("Jump")
-		State.FALL:         anim_state.travel("Fall")
+		State.JUMP:         anim_state.travel("JumpUp")
+		State.FALL:         anim_state.travel("JumpDown")
 		State.ATTACK_LIGHT: anim_state.travel("AttackLight")
 		State.ATTACK_HEAVY: anim_state.travel("AttackHeavy")
 		State.GRAPPLE:      anim_state.travel("Grapple")
@@ -314,8 +314,13 @@ func _tick_cooldowns(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0, 20.0 * delta)
 		velocity.z = move_toward(velocity.z, 0, 20.0 * delta)
 		
-		# 0.45秒で問答無用に基本状態へ強制復帰
-		if _state_timer >= 0.45:
+		# AnimationTree側のノードが "Idle" に戻ったらスクリプトも復帰させる（アニメの長さに自動追従）
+		if anim_state and anim_state.get_current_node() == "Idle" and _state_timer > 0.1:
+			_attack_pending = false
+			_disable_all_hitboxes()
+			_change_state(State.IDLE)
+		# AnimationTreeが無い/設定ミスの際のフォールバック（2秒経過で強制復帰）
+		elif _state_timer >= 2.0:
 			_attack_pending = false
 			_disable_all_hitboxes()
 			_change_state(State.IDLE)
