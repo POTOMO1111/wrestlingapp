@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/CharacterStats.gd" id="1_charstats"]
+
+[resource]
+script = ExtResource("1_charstats")
+character_name = "Balanced"
+max_recoverable_hp = 100.0
+max_permanent_hp = 100.0
+recoverable_hp_regen_rate = 5.0
+recoverable_hp_regen_delay = 2.5
+incapacitated_duration = 3.0
+incapacitated_dominance_penalty = 0.6
+punch_damage_multiplier = 1.0
+kick_damage_multiplier = 1.0
+grapple_damage_multiplier = 1.0
+defense_multiplier = 1.0
+dominance_gain_rate = 1.0

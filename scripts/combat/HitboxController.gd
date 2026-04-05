@@ -12,7 +12,7 @@ enum AttackType { LIGHT, HEAVY, GRAPPLE }
 
 @export var attack_type : AttackType = AttackType.LIGHT
 @export var damage      : int = 10
-@export var knockback_force : float = 5.0
+@export var knockback_force : float = 1.5
 
 ## ヒット時に発火するシグナル
 signal hit_connected(target, damage, knockback_dir)
@@ -23,10 +23,11 @@ var _hit_targets : Array = []
 var _debug_mesh : MeshInstance3D = null
 
 func _ready() -> void:
-	# HurtBox レイヤー（Layer 5）とだけ重なるよう設定
-	# ※ インスペクターでの設定ミスを防ぐため、強制的に Layer 1 (CharacterBody) と Layer 5 (HurtBox) を両方検知させる
+	# Hitbox は Layer 4 に配置し、Layer 1 (Body) + Layer 5 (HurtBox) を検知
 	monitoring = false
-	collision_mask = 1 | 16
+	monitorable = false
+	collision_layer = 8    # Layer 4 (hitbox)
+	collision_mask  = 1 | 16  # Layer 1 (body) + Layer 5 (hurtbox)
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
 	_setup_debug_mesh()

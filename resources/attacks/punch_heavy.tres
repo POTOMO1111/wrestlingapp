@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/AttackData.gd" id="1_attackdata"]
+
+[resource]
+script = ExtResource("1_attackdata")
+attack_name = "Punch Heavy"
+action_type = 1
+startup_frames = 6
+active_frames = 4
+recovery_frames = 14
+recoverable_damage = 15.0
+permanent_damage = 0.0
+stamina_cost = 6.0
+hitbox_size = Vector3(0.6, 0.5, 0.5)
+hitbox_offset = Vector3(0, 0.8, 0.7)
+counter_hit_multiplier = 1.5
+hit_stun_frames = 16
+block_stun_frames = 6
+max_range = 1.5
+animation_name = "AttackHeavy"
+cancel_into = []

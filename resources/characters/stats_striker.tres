@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/CharacterStats.gd" id="1_charstats"]
+
+[resource]
+script = ExtResource("1_charstats")
+character_name = "Striker"
+max_recoverable_hp = 110.0
+max_permanent_hp = 80.0
+recoverable_hp_regen_rate = 6.0
+recoverable_hp_regen_delay = 3.0
+incapacitated_duration = 3.5
+incapacitated_dominance_penalty = 0.7
+punch_damage_multiplier = 1.3
+kick_damage_multiplier = 1.3
+grapple_damage_multiplier = 0.7
+defense_multiplier = 1.1
+dominance_gain_rate = 0.7

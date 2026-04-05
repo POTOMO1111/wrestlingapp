@@ -1,43 +1,182 @@
 extends Node3D
 
+# ============================================================
+#  main.gd
+#  試合シーンのルートスクリプト。
+#  キャラクターを動的生成し、新戦闘システムを構築・接続する。
+# ============================================================
+
+@onready var fight_manager:      FightManager      = $FightManager
+@onready var ko_sequence_manager: KOSequenceManager = $KOSequenceManager
+
 func _ready() -> void:
 	AudioManager.play_bgm("battle")
-	
-	# 動的スポーン処理
+	ko_sequence_manager.setup(fight_manager)
 	_spawn_characters()
-	
-	# ゲームマネージャーに試合開始を通知
-	GameManager.start_match()
+	# GameManager の match_state を FIGHTING にしてポーズ等が機能するようにする
+	if GameManager.has_method("start_match"):
+		GameManager.start_match()
 
 func _spawn_characters() -> void:
-	# 例外的に、両方同じモックアップモデルを使用（将来的に GameManager.p1_character_id で分岐する）
 	var char_scene = load("res://scenes/characters/player.tscn")
 	if char_scene == null:
-		push_error("Failed to load character scene!")
+		push_error("main.gd: player.tscn の読み込みに失敗しました")
 		return
-		
-	# 1P (左下付近から右上向き)
+
+	# --- Player 1 (人間操作) ---
 	var p1 = char_scene.instantiate()
 	p1.player_id = 1
-	p1.is_dummy = false
-	p1.name = "Player1_" + GameManager.p1_character_id
-	p1.transform.origin = Vector3(0, 1, 3.0)
+	p1.is_dummy  = false
+	p1.name      = "Player1"
+	p1.transform.origin = Vector3(0, 1.2, 2.0)
 	add_child(p1)
-	
-	# 【重要】動的生成した場合は明示的にカメラをアクティブ化しないと画面が灰色になる
+
+	# カメラを有効化
 	var cam = p1.get_node_or_null("SpringArm3D/Camera3D")
 	if cam:
 		cam.current = true
-		
-	GameManager.register_fighter(p1)
-	
-	# 2P (右上付近から左下向き)
+
+	# --- Player 2 (CPU) ---
 	var p2 = char_scene.instantiate()
+	var cpu_script = load("res://scripts/characters/CPUController.gd")
+	if cpu_script:
+		p2.set_script(cpu_script)
 	p2.player_id = 2
-	p2.is_dummy = true # 当面はCPUダミーを配置
-	p2.name = "Player2_" + GameManager.p2_character_id
-	p2.transform.origin = Vector3(0, 1, -3.0)
-	p2.rotation.y = PI # 向かい合わせる (180度回転)
+	p2.name      = "Player2"
+	p2.transform.origin = Vector3(0, 1.2, -2.0)
+	p2.rotation.y = PI
 	add_child(p2)
-	
-	GameManager.register_fighter(p2)
+
+	# 両キャラに CombatController サブツリーを追加
+	_attach_combat_system(p1, GameEnums.PlayerID.PLAYER_ONE, "balanced")
+	_attach_combat_system(p2, GameEnums.PlayerID.PLAYER_TWO, "balanced")
+
+	# FightManager にキャラクターを登録
+	fight_manager.set_fighters(p1, p2)
+
+	# InputHandler を P1 に追加（P2はCPUなので不要）
+	_attach_input_handler(p1, GameEnums.PlayerID.PLAYER_ONE)
+
+	# HUD をロードして接続
+	_setup_hud()
+
+	# デバッグオーバーレイ（debug_mode が有効な場合のみ）
+	_setup_debug_overlay()
+
+# ----------------------------------------------------------
+# CombatController サブツリーの動的構築
+# ----------------------------------------------------------
+
+func _attach_combat_system(character: Node, pid: GameEnums.PlayerID, stats_name: String) -> void:
+	# HealthComponent
+	var health_comp = HealthComponent.new()
+	health_comp.name = "HealthComponent"
+	var stats_path = "res://resources/characters/stats_%s.tres" % stats_name
+	var stats = load(stats_path)
+	if stats == null:
+		push_warning("main.gd: stats ファイルが見つかりません: " + stats_path)
+		stats = CharacterStats.new()
+	health_comp.stats = stats
+
+	# HitboxManager（子にArea3DとCollisionShape3Dが必要）
+	var hbm = HitboxManager.new()
+	hbm.name = "HitboxManager"
+	_build_hitbox_manager_nodes(hbm)
+
+	# ComboManager
+	var combo_mgr = ComboManager.new()
+	combo_mgr.name = "ComboManager"
+	# combo_tree_root はリソースが揃い次第設定（現在は null で単発攻撃のみ）
+
+	# ステートノード群
+	var states: Array = [
+		["StateIdle",          StateIdle.new()],
+		["StateWalking",       StateWalking.new()],
+		["StateAttacking",     StateAttacking.new()],
+		["StateGuarding",      StateGuarding.new()],
+		["StateGrappling",     StateGrappling.new()],
+		["StateGrappled",      StateGrappled.new()],
+		["StateHitStun",       StateHitStun.new()],
+		["StateKnockdown",     StateKnockdown.new()],
+		["StateGettingUp",     StateGettingUp.new()],
+		["StateIncapacitated", StateIncapacitated.new()],
+		["StateKO",            StateKO.new()],
+	]
+
+	# CombatController 本体
+	var ctrl = CombatController.new()
+	ctrl.name      = "CombatController"
+	ctrl.player_id = pid
+
+	# 子ノードを追加（CombatController が @onready で参照するため先に add_child）
+	ctrl.add_child(health_comp)
+	ctrl.add_child(hbm)
+	ctrl.add_child(combo_mgr)
+	for pair in states:
+		pair[1].name = pair[0]
+		ctrl.add_child(pair[1])
+
+	character.add_child(ctrl)
+
+func _build_hitbox_manager_nodes(hbm: HitboxManager) -> void:
+	# Hitbox
+	var hitbox = Area3D.new()
+	hitbox.name = "Hitbox"
+	hitbox.add_to_group("hitbox")
+	var hitbox_shape = CollisionShape3D.new()
+	hitbox_shape.name = "CollisionShape3D"
+	hitbox_shape.shape = BoxShape3D.new()
+	hitbox.add_child(hitbox_shape)
+	hbm.add_child(hitbox)
+
+	# Hurtbox
+	var hurtbox = Area3D.new()
+	hurtbox.name = "Hurtbox"
+	hurtbox.add_to_group("hurtbox")
+	var hurtbox_shape = CollisionShape3D.new()
+	hurtbox_shape.name = "CollisionShape3D"
+	hurtbox_shape.shape = CapsuleShape3D.new()
+	hurtbox.add_child(hurtbox_shape)
+	hbm.add_child(hurtbox)
+
+func _attach_input_handler(character: Node, pid: GameEnums.PlayerID) -> void:
+	var ih = InputHandler.new()
+	ih.name      = "InputHandler"
+	ih.player_id = pid
+	character.add_child(ih)
+
+# ----------------------------------------------------------
+# HUD セットアップ
+# ----------------------------------------------------------
+
+func _setup_hud() -> void:
+	var hud_scene = load("res://scenes/ui/hud.tscn")
+	if hud_scene == null:
+		push_warning("main.gd: hud.tscn が見つかりません")
+		return
+	var hud = hud_scene.instantiate()
+	add_child(hud)
+	# FightManager が set_fighters() を終えた後に接続
+	call_deferred("_connect_hud", hud)
+
+func _connect_hud(hud: Node) -> void:
+	if hud.has_method("connect_to_fight_manager"):
+		hud.connect_to_fight_manager(fight_manager)
+
+# ----------------------------------------------------------
+# デバッグオーバーレイ
+# ----------------------------------------------------------
+
+func _setup_debug_overlay() -> void:
+	if not GameManager.debug_mode:
+		return
+	var overlay = DebugOverlay.new()
+	overlay.name = "DebugOverlay"
+	add_child(overlay)
+	# InputHandler など全ノードが add_child された後に接続（2フレーム後）
+	call_deferred("_connect_debug_overlay_deferred", overlay)
+
+func _connect_debug_overlay_deferred(overlay: DebugOverlay) -> void:
+	# さらに1フレーム待つことで全 _ready() が確実に完了する
+	await get_tree().process_frame
+	overlay.setup(fight_manager)

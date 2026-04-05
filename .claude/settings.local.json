@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/Users/tomo-/GoDot4_projects/wrestling/*.*)",
+      "Bash(ls \"C:\\\\Users\\\\tomo-\\\\.claude\\\\projects\\\\C--Users-tomo--GoDot4-projects-wrestling\\\\memory\"\" 2>/dev/null || echo \"empty or not found \")",
+      "Bash(echo \"exit:$?\")",
+      "Bash(git config:*)",
+      "Bash(__NEW_LINE_a37dac31cac79e97__ git:*)",
+      "Bash(__NEW_LINE_a37dac31cac79e97__ echo:*)",
+      "Bash(__NEW_LINE_1d40f218f70584bd__ git:*)",
+      "Bash(__NEW_LINE_1d40f218f70584bd__ echo:*)",
+      "Bash(ls test*.png)",
+      "Bash(__NEW_LINE_660a766ad33dcd75__ echo:*)",
+      "Bash(__NEW_LINE_660a766ad33dcd75__ find:*)",
+      "Bash(__NEW_LINE_660a766ad33dcd75__ git:*)"
+    ]
+  }
+}

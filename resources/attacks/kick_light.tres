@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/AttackData.gd" id="1_attackdata"]
+
+[resource]
+script = ExtResource("1_attackdata")
+attack_name = "Kick Light"
+action_type = 2
+startup_frames = 10
+active_frames = 4
+recovery_frames = 12
+recoverable_damage = 12.0
+permanent_damage = 0.0
+stamina_cost = 5.0
+hitbox_size = Vector3(0.5, 0.4, 0.6)
+hitbox_offset = Vector3(0, 0.5, 0.8)
+counter_hit_multiplier = 1.5
+hit_stun_frames = 14
+block_stun_frames = 5
+max_range = 1.6
+animation_name = "AttackLight"
+cancel_into = [1, 2]

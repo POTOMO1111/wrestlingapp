@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/CharacterStats.gd" id="1_charstats"]
+
+[resource]
+script = ExtResource("1_charstats")
+character_name = "Grappler"
+max_recoverable_hp = 80.0
+max_permanent_hp = 120.0
+recoverable_hp_regen_rate = 4.0
+recoverable_hp_regen_delay = 2.0
+incapacitated_duration = 2.5
+incapacitated_dominance_penalty = 0.5
+punch_damage_multiplier = 0.85
+kick_damage_multiplier = 0.85
+grapple_damage_multiplier = 1.4
+defense_multiplier = 0.9
+dominance_gain_rate = 1.5

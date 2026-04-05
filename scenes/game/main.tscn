@@ -1,8 +1,15 @@
-[gd_scene load_steps=7 format=3 uid="uid://8dhku3h512ld"]
+[gd_scene load_steps=34 format=3 uid="uid://8dhku3h512ld"]
 
 [ext_resource type="Script" path="res://scripts/game/main.gd" id="1_mainscript"]
+[ext_resource type="Script" path="res://scripts/managers/FightManager.gd" id="2_fightmgr"]
+[ext_resource type="Script" path="res://scripts/managers/KOSequenceManager.gd" id="3_kosequence"]
+[ext_resource type="Script" path="res://scripts/systems/GrappleManager.gd" id="4_grapplemgr"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_llaio"]
+sky_top_color = Color(0.05, 0.05, 0.1, 1)
+sky_horizon_color = Color(0.1, 0.1, 0.15, 1)
+ground_bottom_color = Color(0.02, 0.02, 0.05, 1)
+ground_horizon_color = Color(0.1, 0.1, 0.15, 1)
 
 [sub_resource type="Sky" id="Sky_oekm8"]
 sky_material = SubResource("ProceduralSkyMaterial_llaio")
@@ -10,41 +17,431 @@ sky_material = SubResource("ProceduralSkyMaterial_llaio")
 [sub_resource type="Environment" id="Environment_yd8kv"]
 background_mode = 2
 sky = SubResource("Sky_oekm8")
-ambient_light_source = 2
-ambient_light_color = Color(1, 1, 1, 1)
-ambient_light_energy = 0.3
+ambient_light_source = 3
+ambient_light_color = Color(0.6, 0.65, 0.75, 1)
+ambient_light_energy = 0.7
+tonemap_mode = 2
+tonemap_exposure = 1.2
+glow_enabled = true
+glow_intensity = 0.4
+glow_bloom = 0.15
+fog_enabled = true
+fog_light_color = Color(0.2, 0.2, 0.25, 1)
+fog_density = 0.001
 
-[sub_resource type="BoxMesh" id="BoxMesh_llaio"]
-size = Vector3(30, 1, 30)
+[sub_resource type="StandardMaterial3D" id="mat_ring_floor"]
+albedo_color = Color(0.35, 0.32, 0.38, 1)
+roughness = 0.85
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_llaio"]
-albedo_color = Color(0.6039216, 0.38431373, 0.16078432, 1)
+[sub_resource type="StandardMaterial3D" id="mat_apron"]
+albedo_color = Color(0.08, 0.08, 0.12, 1)
+roughness = 0.8
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_iba00"]
-size = Vector3(30, 1, 30)
+[sub_resource type="StandardMaterial3D" id="mat_rope"]
+albedo_color = Color(0.95, 0.95, 0.9, 1)
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="mat_post"]
+albedo_color = Color(0.7, 0.7, 0.75, 1)
+metallic = 0.8
+roughness = 0.3
+
+[sub_resource type="StandardMaterial3D" id="mat_arena_floor"]
+albedo_color = Color(0.12, 0.12, 0.12, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="mat_audience"]
+albedo_color = Color(0.55, 0.15, 0.12, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="mat_audience_upper"]
+albedo_color = Color(0.35, 0.12, 0.28, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="mat_wall"]
+albedo_color = Color(0.06, 0.06, 0.08, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="mat_ceiling"]
+albedo_color = Color(0.04, 0.04, 0.06, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_ring"]
+size = Vector3(7, 0.3, 7)
+
+[sub_resource type="BoxShape3D" id="shape_ring_floor"]
+size = Vector3(7, 0.3, 7)
+
+[sub_resource type="BoxMesh" id="BoxMesh_arena"]
+size = Vector3(40, 0.2, 40)
+
+[sub_resource type="BoxShape3D" id="shape_arena_floor"]
+size = Vector3(40, 0.2, 40)
+
+[sub_resource type="BoxMesh" id="BoxMesh_apron_fb"]
+size = Vector3(7, 1.0, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_apron_lr"]
+size = Vector3(0.15, 1.0, 7)
+
+[sub_resource type="BoxMesh" id="BoxMesh_post"]
+size = Vector3(0.12, 1.8, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_rope_fb"]
+size = Vector3(6.6, 0.04, 0.04)
+
+[sub_resource type="BoxMesh" id="BoxMesh_rope_lr"]
+size = Vector3(0.04, 0.04, 6.6)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_barrier_fb"]
+size = Vector3(7.2, 2.0, 0.3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_barrier_lr"]
+size = Vector3(0.3, 2.0, 7.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_stand_fb"]
+size = Vector3(20, 2.0, 5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_stand_lr"]
+size = Vector3(5, 2.0, 20)
+
+[sub_resource type="BoxMesh" id="BoxMesh_corner"]
+size = Vector3(5, 2.0, 5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_fb"]
+size = Vector3(34, 14, 0.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_lr"]
+size = Vector3(0.5, 14, 34)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ceiling"]
+size = Vector3(34, 0.3, 34)
 
 [node name="Main" type="Node3D" unique_id=1644604858]
 script = ExtResource("1_mainscript")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1105080583]
-transform = Transform3D(0.8660254, 0.35355338, -0.35355338, 0, 0.70710677, 0.70710677, 0.5, -0.6123724, 0.6123724, 0, 0, 0)
-shadow_enabled = true
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1790239333]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_yd8kv")
 
-[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=927026751]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+[node name="SpotMain" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 12, 0)
+light_color = Color(1.0, 0.97, 0.9, 1)
+light_energy = 16.0
+shadow_enabled = true
+spot_range = 25.0
+spot_angle = 40.0
+spot_attenuation = 0.5
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D" unique_id=1454327549]
-mesh = SubResource("BoxMesh_llaio")
-surface_material_override/0 = SubResource("StandardMaterial3D_llaio")
+[node name="SpotFront" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -0.4856, -0.8741, 0, 0.8741, -0.4856, 0, 10, -5)
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 10.0
+shadow_enabled = true
+spot_range = 22.0
+spot_angle = 35.0
+spot_attenuation = 0.6
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=42974438]
-shape = SubResource("BoxShape3D_iba00")
+[node name="SpotBack" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.4856, -0.8741, 0, 0.8741, 0.4856, 0, 10, 5)
+light_color = Color(0.9, 0.95, 1.0, 1)
+light_energy = 10.0
+shadow_enabled = true
+spot_range = 22.0
+spot_angle = 35.0
+spot_attenuation = 0.6
+
+[node name="SpotLeft" type="SpotLight3D" parent="."]
+transform = Transform3D(0, 0, 1, 0.8741, 0.4856, 0, -0.4856, 0.8741, 0, -5, 10, 0)
+light_color = Color(1.0, 0.92, 0.88, 1)
+light_energy = 8.0
+spot_range = 20.0
+spot_angle = 32.0
+spot_attenuation = 0.6
+
+[node name="SpotRight" type="SpotLight3D" parent="."]
+transform = Transform3D(0, 0, 1, 0.8741, -0.4856, 0, 0.4856, 0.8741, 0, 5, 10, 0)
+light_color = Color(1.0, 0.92, 0.88, 1)
+light_energy = 8.0
+spot_range = 20.0
+spot_angle = 32.0
+spot_attenuation = 0.6
+
+[node name="DirFill" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, 0.354, -0.354, 0, 0.707, 0.707, 0.5, -0.612, 0.612, 0, 0, 0)
+light_color = Color(0.5, 0.55, 0.7, 1)
+light_energy = 0.8
+
+[node name="ArenaFloor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="ArenaFloor"]
+mesh = SubResource("BoxMesh_arena")
+surface_material_override/0 = SubResource("mat_arena_floor")
+
+[node name="Col" type="CollisionShape3D" parent="ArenaFloor"]
+shape = SubResource("shape_arena_floor")
+
+[node name="Ring" type="Node3D" parent="."]
+
+[node name="RingFloor" type="StaticBody3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Ring/RingFloor"]
+mesh = SubResource("BoxMesh_ring")
+surface_material_override/0 = SubResource("mat_ring_floor")
+
+[node name="Col" type="CollisionShape3D" parent="Ring/RingFloor"]
+shape = SubResource("shape_ring_floor")
+
+[node name="ApronFront" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -3.5)
+mesh = SubResource("BoxMesh_apron_fb")
+surface_material_override/0 = SubResource("mat_apron")
+
+[node name="ApronBack" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 3.5)
+mesh = SubResource("BoxMesh_apron_fb")
+surface_material_override/0 = SubResource("mat_apron")
+
+[node name="ApronLeft" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0.5, 0)
+mesh = SubResource("BoxMesh_apron_lr")
+surface_material_override/0 = SubResource("mat_apron")
+
+[node name="ApronRight" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.5, 0)
+mesh = SubResource("BoxMesh_apron_lr")
+surface_material_override/0 = SubResource("mat_apron")
+
+[node name="PostFL" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.3, 1.75, -3.3)
+mesh = SubResource("BoxMesh_post")
+surface_material_override/0 = SubResource("mat_post")
+
+[node name="PostFR" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3, 1.75, -3.3)
+mesh = SubResource("BoxMesh_post")
+surface_material_override/0 = SubResource("mat_post")
+
+[node name="PostBL" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.3, 1.75, 3.3)
+mesh = SubResource("BoxMesh_post")
+surface_material_override/0 = SubResource("mat_post")
+
+[node name="PostBR" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3, 1.75, 3.3)
+mesh = SubResource("BoxMesh_post")
+surface_material_override/0 = SubResource("mat_post")
+
+[node name="RopeFront1" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, -3.3)
+mesh = SubResource("BoxMesh_rope_fb")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeFront2" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, -3.3)
+mesh = SubResource("BoxMesh_rope_fb")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeFront3" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, -3.3)
+mesh = SubResource("BoxMesh_rope_fb")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeBack1" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 3.3)
+mesh = SubResource("BoxMesh_rope_fb")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeBack2" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 3.3)
+mesh = SubResource("BoxMesh_rope_fb")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeBack3" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 3.3)
+mesh = SubResource("BoxMesh_rope_fb")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeLeft1" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.3, 1.3, 0)
+mesh = SubResource("BoxMesh_rope_lr")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeLeft2" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.3, 1.8, 0)
+mesh = SubResource("BoxMesh_rope_lr")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeLeft3" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.3, 2.3, 0)
+mesh = SubResource("BoxMesh_rope_lr")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeRight1" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3, 1.3, 0)
+mesh = SubResource("BoxMesh_rope_lr")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeRight2" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3, 1.8, 0)
+mesh = SubResource("BoxMesh_rope_lr")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="RopeRight3" type="MeshInstance3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3, 2.3, 0)
+mesh = SubResource("BoxMesh_rope_lr")
+surface_material_override/0 = SubResource("mat_rope")
+
+[node name="BarrierFront" type="StaticBody3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -3.5)
+
+[node name="Col" type="CollisionShape3D" parent="Ring/BarrierFront"]
+shape = SubResource("BoxShape3D_barrier_fb")
+
+[node name="BarrierBack" type="StaticBody3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 3.5)
+
+[node name="Col" type="CollisionShape3D" parent="Ring/BarrierBack"]
+shape = SubResource("BoxShape3D_barrier_fb")
+
+[node name="BarrierLeft" type="StaticBody3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 1.5, 0)
+
+[node name="Col" type="CollisionShape3D" parent="Ring/BarrierLeft"]
+shape = SubResource("BoxShape3D_barrier_lr")
+
+[node name="BarrierRight" type="StaticBody3D" parent="Ring"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 1.5, 0)
+
+[node name="Col" type="CollisionShape3D" parent="Ring/BarrierRight"]
+shape = SubResource("BoxShape3D_barrier_lr")
+
+[node name="Audience" type="Node3D" parent="."]
+
+[node name="StandFront1" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -8)
+mesh = SubResource("BoxMesh_stand_fb")
+surface_material_override/0 = SubResource("mat_audience")
+
+[node name="StandFront2" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -12)
+mesh = SubResource("BoxMesh_stand_fb")
+surface_material_override/0 = SubResource("mat_audience_upper")
+
+[node name="StandBack1" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 8)
+mesh = SubResource("BoxMesh_stand_fb")
+surface_material_override/0 = SubResource("mat_audience")
+
+[node name="StandBack2" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 12)
+mesh = SubResource("BoxMesh_stand_fb")
+surface_material_override/0 = SubResource("mat_audience_upper")
+
+[node name="StandLeft1" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.5, 0)
+mesh = SubResource("BoxMesh_stand_lr")
+surface_material_override/0 = SubResource("mat_audience")
+
+[node name="StandLeft2" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 1.5, 0)
+mesh = SubResource("BoxMesh_stand_lr")
+surface_material_override/0 = SubResource("mat_audience_upper")
+
+[node name="StandRight1" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.5, 0)
+mesh = SubResource("BoxMesh_stand_lr")
+surface_material_override/0 = SubResource("mat_audience")
+
+[node name="StandRight2" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 1.5, 0)
+mesh = SubResource("BoxMesh_stand_lr")
+surface_material_override/0 = SubResource("mat_audience_upper")
+
+[node name="CornerFL" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.5, -8)
+mesh = SubResource("BoxMesh_corner")
+surface_material_override/0 = SubResource("mat_audience")
+
+[node name="CornerFR" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.5, -8)
+mesh = SubResource("BoxMesh_corner")
+surface_material_override/0 = SubResource("mat_audience")
+
+[node name="CornerBL" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0.5, 8)
+mesh = SubResource("BoxMesh_corner")
+surface_material_override/0 = SubResource("mat_audience")
+
+[node name="CornerBR" type="MeshInstance3D" parent="Audience"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.5, 8)
+mesh = SubResource("BoxMesh_corner")
+surface_material_override/0 = SubResource("mat_audience")
+
+[node name="Walls" type="Node3D" parent="."]
+
+[node name="WallFront" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, -16)
+mesh = SubResource("BoxMesh_wall_fb")
+surface_material_override/0 = SubResource("mat_wall")
+
+[node name="WallBack" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 16)
+mesh = SubResource("BoxMesh_wall_fb")
+surface_material_override/0 = SubResource("mat_wall")
+
+[node name="WallLeft" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 5, 0)
+mesh = SubResource("BoxMesh_wall_lr")
+surface_material_override/0 = SubResource("mat_wall")
+
+[node name="WallRight" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 5, 0)
+mesh = SubResource("BoxMesh_wall_lr")
+surface_material_override/0 = SubResource("mat_wall")
+
+[node name="Ceiling" type="MeshInstance3D" parent="Walls"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 14, 0)
+mesh = SubResource("BoxMesh_ceiling")
+surface_material_override/0 = SubResource("mat_ceiling")
 
 [node name="SpawnPoint1" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 2)
 
 [node name="SpawnPoint2" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, -2)
+
+[node name="FightManager" type="Node" parent="."]
+script = ExtResource("2_fightmgr")
+
+[node name="GrappleManager" type="Node" parent="FightManager"]
+script = ExtResource("4_grapplemgr")
+
+[node name="KOSequenceManager" type="Node" parent="."]
+script = ExtResource("3_kosequence")
+
+[node name="KO_Overlay" type="CanvasLayer" parent="KOSequenceManager"]
+visible = false
+layer = 20
+
+[node name="KO_Label" type="Label" parent="KOSequenceManager/KO_Overlay"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -60.0
+offset_right = 200.0
+offset_bottom = 60.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "K.O."
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 72
+theme_override_colors/font_color = Color(1, 0.9, 0, 1)
+theme_override_colors/font_shadow_color = Color(0.8, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 4

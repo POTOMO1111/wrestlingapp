@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="GrappleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/GrappleData.gd" id="1_grappledata"]
+
+[resource]
+script = ExtResource("1_grappledata")
+grapple_name = "Basic Grapple"
+startup_frames = 18
+active_frames = 5
+recovery_frames = 20
+permanent_damage = 15.0
+recoverable_damage = 5.0
+stamina_cost = 12.0
+dominance_gain = 0.25
+dominance_damage_threshold = 0.7
+max_range = 1.2
+can_bypass_guard = true
+hitbox_size = Vector3(0.6, 0.8, 0.6)
+hitbox_offset = Vector3(0, 0.5, 0.8)
+initiator_animation = "Grapple"
+receiver_animation = "Hit"
+dominant_damage_multiplier = 1.4

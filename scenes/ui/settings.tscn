@@ -116,6 +116,21 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 32
 
+[node name="DebugHBox" type="HBoxContainer" parent="Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="Margin/VBox/DebugHBox"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "DEBUG MODE"
+
+[node name="DebugCheck" type="CheckBox" parent="Margin/VBox/DebugHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+
 [node name="Spacer" type="Control" parent="Margin/VBox"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
@@ -131,4 +146,5 @@ text = "BACK TO TITLE"
 [connection signal="value_changed" from="Margin/VBox/BGMHBox/BGMSlider" to="." method="_on_bgm_slider_value_changed"]
 [connection signal="value_changed" from="Margin/VBox/SFXHBox/SFXSlider" to="." method="_on_sfx_slider_value_changed"]
 [connection signal="toggled" from="Margin/VBox/FullscreenHBox/FullscreenCheck" to="." method="_on_fullscreen_check_toggled"]
+[connection signal="toggled" from="Margin/VBox/DebugHBox/DebugCheck" to="." method="_on_debug_check_toggled"]
 [connection signal="pressed" from="Margin/VBox/BackButton" to="." method="_on_back_button_pressed"]

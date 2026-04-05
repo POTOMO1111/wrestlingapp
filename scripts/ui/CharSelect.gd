@@ -1,14 +1,15 @@
 extends Control
 
-var characters = ["Player"] # プレースホルダー（将来的にキャラが増える想定）
-var p1_selected = "Player"
-var p2_selected = "Player"
+var p1_selected := "Player"
+var p2_selected := "Player"
 
 func _ready() -> void:
 	AudioManager.play_bgm("select")
 	GameManager.hide_battle_ui()
-	if has_node("VBox/FightButton"):
-		$VBox/FightButton.grab_focus()
+	# コントローラー/キーボード操作のためにデフォルトフォーカスを設定
+	var fight_btn := get_node_or_null("VBox/FightButton")
+	if fight_btn:
+		fight_btn.grab_focus()
 
 func _on_fight_button_pressed() -> void:
 	GameManager.p1_character_id = p1_selected

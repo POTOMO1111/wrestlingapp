@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/AttackData.gd" id="1_attackdata"]
+
+[resource]
+script = ExtResource("1_attackdata")
+attack_name = "Punch Light"
+action_type = 1
+startup_frames = 4
+active_frames = 3
+recovery_frames = 8
+recoverable_damage = 8.0
+permanent_damage = 0.0
+stamina_cost = 3.0
+hitbox_size = Vector3(0.5, 0.5, 0.5)
+hitbox_offset = Vector3(0, 0.8, 0.6)
+counter_hit_multiplier = 1.5
+hit_stun_frames = 10
+block_stun_frames = 4
+max_range = 1.4
+animation_name = "AttackLight"
+cancel_into = [1, 2]

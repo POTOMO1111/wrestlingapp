@@ -3,8 +3,10 @@ extends Control
 func _ready() -> void:
 	AudioManager.play_bgm("title")
 	GameManager.hide_battle_ui()
-	if has_node("Menu/VBoxContainer/StartButton"):
-		$Menu/VBoxContainer/StartButton.grab_focus()
+	# コントローラー/キーボード操作のためにデフォルトフォーカスを設定
+	var start_btn := get_node_or_null("Menu/VBoxContainer/StartButton")
+	if start_btn:
+		start_btn.grab_focus()
 
 func _on_start_button_pressed() -> void:
 	SceneManager.change_scene_to_file("res://scenes/ui/char_select.tscn")

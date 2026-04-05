@@ -1,0 +1,25 @@
+# Godot 4 cache (regenerated on project open)
+.godot/
+/android/
+
+# ----------------------------------------------------------------
+# 重いバイナリアセット (Git LFS 推奨、または外部管理)
+# コミットしたい場合は該当行をコメントアウトすること
+# ----------------------------------------------------------------
+
+# 3D モデル・キャラクターモデル
+assets/models/**/*.glb
+assets/models/**/*.fbx
+assets/models/**/*.vrm
+assets/models/**/*.vroid
+
+# アニメーション FBX ソース (コンパイル済み .res は含まない)
+assets/animations/**/*.fbx
+
+# オーディオ
+assets/audio/**/*.mp3
+assets/audio/**/*.ogg
+assets/audio/**/*.wav
+
+# キャラクターテクスチャ (容量が大きい場合)
+# assets/textures/**/*.png
