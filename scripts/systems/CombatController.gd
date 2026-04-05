@@ -72,6 +72,9 @@ func _ready() -> void:
 	hitbox_manager.hit_landed.connect(_on_hit_landed)
 	hitbox_manager.grapple_initiated.connect(_on_grapple_initiated)
 
+	# ComboManager シグナル接続（エンダー倍率を受け取る）
+	combo_manager.combo_attack_resolved.connect(_on_combo_attack_resolved)
+
 	transition_to(GameEnums.CharacterState.IDLE)
 
 func _physics_process(delta: float) -> void:
@@ -118,6 +121,10 @@ func _on_grapple_initiated(target: Node, grapple: GrappleData) -> void:
 	var fight_mgr = get_tree().get_first_node_in_group("fight_manager")
 	if fight_mgr:
 		fight_mgr.process_grapple_start(self, target, grapple)
+
+## ComboManager からのエンダー倍率を受け取り、次の攻撃ヒット時に適用する
+func _on_combo_attack_resolved(_attack: AttackData, _is_ender: bool, multiplier: float) -> void:
+	_ender_damage_multiplier = multiplier
 
 # ----------------------------------------------------------
 # ユーティリティ

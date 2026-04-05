@@ -1,0 +1,159 @@
+[gd_resource type="Resource" script_class="ComboNode" load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ComboNode.gd" id="1_combonode"]
+[ext_resource type="Resource" path="res://resources/attacks/punch_light.tres" id="2_punch_light"]
+[ext_resource type="Resource" path="res://resources/attacks/punch_heavy.tres" id="3_punch_heavy"]
+[ext_resource type="Resource" path="res://resources/attacks/kick_light.tres" id="4_kick_light"]
+[ext_resource type="Resource" path="res://resources/attacks/kick_heavy.tres" id="5_kick_heavy"]
+
+; ============================================================
+; 3ヒット目（エンダー）ノード群 - branches なし
+; ============================================================
+
+[sub_resource type="Resource" id="ComboNode_PPP"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("5_kick_heavy")
+branches = {}
+hit_count = 3
+is_ender = true
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_PPK"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("4_kick_light")
+branches = {}
+hit_count = 3
+is_ender = true
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_PKP"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("3_punch_heavy")
+branches = {}
+hit_count = 3
+is_ender = true
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_PKK"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("5_kick_heavy")
+branches = {}
+hit_count = 3
+is_ender = true
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_KPP"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("3_punch_heavy")
+branches = {}
+hit_count = 3
+is_ender = true
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_KPK"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("5_kick_heavy")
+branches = {}
+hit_count = 3
+is_ender = true
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_KKP"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("3_punch_heavy")
+branches = {}
+hit_count = 3
+is_ender = true
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_KKK"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("5_kick_heavy")
+branches = {}
+hit_count = 3
+is_ender = true
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+; ============================================================
+; 2ヒット目ノード群 - エンダーへの branches あり
+; ============================================================
+
+[sub_resource type="Resource" id="ComboNode_PP"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("3_punch_heavy")
+branches = {"PUNCH": SubResource("ComboNode_PPP"), "KICK": SubResource("ComboNode_PPK")}
+hit_count = 2
+is_ender = false
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_PK"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("4_kick_light")
+branches = {"PUNCH": SubResource("ComboNode_PKP"), "KICK": SubResource("ComboNode_PKK")}
+hit_count = 2
+is_ender = false
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_KP"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("2_punch_light")
+branches = {"PUNCH": SubResource("ComboNode_KPP"), "KICK": SubResource("ComboNode_KPK")}
+hit_count = 2
+is_ender = false
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_KK"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("5_kick_heavy")
+branches = {"PUNCH": SubResource("ComboNode_KKP"), "KICK": SubResource("ComboNode_KKK")}
+hit_count = 2
+is_ender = false
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+; ============================================================
+; 1ヒット目ノード群 - 2ヒット目への branches あり
+; ============================================================
+
+[sub_resource type="Resource" id="ComboNode_P"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("2_punch_light")
+branches = {"PUNCH": SubResource("ComboNode_PP"), "KICK": SubResource("ComboNode_PK")}
+hit_count = 1
+is_ender = false
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+[sub_resource type="Resource" id="ComboNode_K"]
+script = ExtResource("1_combonode")
+attack_data = ExtResource("4_kick_light")
+branches = {"PUNCH": SubResource("ComboNode_KP"), "KICK": SubResource("ComboNode_KK")}
+hit_count = 1
+is_ender = false
+ender_damage_multiplier = 1.3
+window_frames = 30
+
+; ============================================================
+; ROOT ノード（このファイルのメインリソース）
+; attack_data = null, branches で P/K の1ヒット目へ分岐
+; ============================================================
+
+[resource]
+script = ExtResource("1_combonode")
+attack_data = null
+branches = {"PUNCH": SubResource("ComboNode_P"), "KICK": SubResource("ComboNode_K")}
+hit_count = 0
+is_ender = false
+ender_damage_multiplier = 1.3
+window_frames = 30

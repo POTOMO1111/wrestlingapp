@@ -12,7 +12,12 @@
       "Bash(ls test*.png)",
       "Bash(__NEW_LINE_660a766ad33dcd75__ echo:*)",
       "Bash(__NEW_LINE_660a766ad33dcd75__ find:*)",
-      "Bash(__NEW_LINE_660a766ad33dcd75__ git:*)"
+      "Bash(__NEW_LINE_660a766ad33dcd75__ git:*)",
+      "Bash(grep \"animation_name\\\\|initiator_animation\" resources/attacks/*.tres)",
+      "Bash(grep -n \"play_anim\" scripts/states/*.gd)",
+      "Bash(done)",
+      "Bash(grep -n \"node name=\" C:/Users/tomo-/GoDot4_projects/wrestling/scenes/game/*.tscn)",
+      "Bash(xargs cat:*)"
     ]
   }
 }

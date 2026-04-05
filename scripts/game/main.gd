@@ -86,7 +86,11 @@ func _attach_combat_system(character: Node, pid: GameEnums.PlayerID, stats_name:
 	# ComboManager
 	var combo_mgr = ComboManager.new()
 	combo_mgr.name = "ComboManager"
-	# combo_tree_root はリソースが揃い次第設定（現在は null で単発攻撃のみ）
+	var combo_tree = load("res://resources/combos/combo_tree_root.tres")
+	if combo_tree != null:
+		combo_mgr.combo_tree_root = combo_tree
+	else:
+		push_warning("main.gd: combo_tree_root.tres の読み込みに失敗しました。単発攻撃のみ使用します。")
 
 	# ステートノード群
 	var states: Array = [

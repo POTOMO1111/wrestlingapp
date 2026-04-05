@@ -96,10 +96,16 @@ func process_hit(
 			])
 		return
 
+	# コンボエンダー倍率を取得してリセット（コンボ3ヒット目のみ 1.3 倍等が入る）
+	var ender_mult: float = attacker_ctrl._ender_damage_multiplier
+	attacker_ctrl._ender_damage_multiplier = 1.0
+
 	# ダメージ計算
 	var dmg = DamageCalculator.calculate_attack_damage(
 		attack, result, attacker_health.stats, target_health.stats
 	)
+	dmg["recoverable"] *= ender_mult
+	dmg["permanent"]   *= ender_mult
 
 	if GameManager.debug_mode:
 		print("[FightManager.process_hit] attacker=%s target=%s rec=%.1f perm=%.1f" % [

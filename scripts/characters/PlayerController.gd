@@ -243,18 +243,22 @@ func _update_animation() -> void:
 	if anim_state == null:
 		return
 
+	# CombatController が IDLE/WALKING/RUNNING 以外のステートを持つ場合は
+	# アニメーション制御を CombatController に委ねる（毎フレーム上書きを防ぐ）
+	var ctrl = get_node_or_null("CombatController")
+	if ctrl and ctrl.has_method("get_current_state"):
+		var cs: int = ctrl.get_current_state()
+		if cs != GameEnums.CharacterState.IDLE and \
+		   cs != GameEnums.CharacterState.WALKING and \
+		   cs != GameEnums.CharacterState.RUNNING:
+			return
+
 	match current_state:
-		State.IDLE:         anim_state.travel("Idle")
-		State.WALK:         anim_state.travel("Walk")
-		State.RUN:          anim_state.travel("Run")
-		State.JUMP:         anim_state.travel("JumpUp")
-		State.FALL:         anim_state.travel("JumpDown")
-		State.ATTACK_LIGHT: anim_state.travel("AttackLight")
-		State.ATTACK_HEAVY: anim_state.travel("AttackHeavy")
-		State.GRAPPLE:      anim_state.travel("Grapple")
-		State.BLOCK:        anim_state.travel("Block")
-		State.HIT:          anim_state.travel("Hit")
-		State.DOWN:         anim_state.travel("Down")
+		State.IDLE: anim_state.travel("Idle")
+		State.WALK: anim_state.travel("Walk")
+		State.RUN:  anim_state.travel("Run")
+		State.JUMP: anim_state.travel("JumpUp")
+		State.FALL: anim_state.travel("JumpDown")
 
 	# 着地したら IDLE へ
 	if current_state == State.FALL and is_on_floor():
