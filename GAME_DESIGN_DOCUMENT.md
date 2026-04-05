@@ -35,9 +35,9 @@
 ```
 ラウンド開始
   └→ 三すくみ入力（パンチ / キック / グラップリング / ガード）
-       └→ ヒット判定 → ダメージ計算 → HP更新
-            └→ [回復可能HP枯渇] → 行動不可状態（一時）
-            └→ [回復不可能HP枯渇] → KO演出 → ラウンド終了
+	   └→ ヒット判定 → ダメージ計算 → HP更新
+			└→ [回復可能HP枯渇] → 行動不可状態（一時）
+			└→ [回復不可能HP枯渇] → KO演出 → ラウンド終了
   └→ コンボ継続判定（最大3ヒット）
   └→ グラップリング中：dominance争い → ダメージ or ポジション遷移
 ラウンド終了 → 次ラウンド or 試合終了
@@ -69,9 +69,9 @@ res://
 │   ├── managers/               # 管理クラス
 │   └── ui/                     # HUD・UIスクリプト
 └── resources/                  # .tres / .res ファイル群
-    ├── characters/
-    ├── attacks/
-    └── combos/
+	├── characters/
+	├── attacks/
+	└── combos/
 ```
 
 ---
@@ -91,57 +91,57 @@ res://
 # 以下の列挙型をすべて定義すること
 
 enum ActionType {
-    NONE,
-    PUNCH,      # パンチ：発生速い・判定普通
-    KICK,       # キック：発生遅い・判定強い
-    GRAPPLE,    # グラップリング：発生遅い・ガード貫通
-    GUARD       # ガード：発生速い・打撃2種を止める
+	NONE,
+	PUNCH,      # パンチ：発生速い・判定普通
+	KICK,       # キック：発生遅い・判定強い
+	GRAPPLE,    # グラップリング：発生遅い・ガード貫通
+	GUARD       # ガード：発生速い・打撃2種を止める
 }
 
 enum HitResult {
-    WHIFF,          # 空振り
-    BLOCKED,        # ガード成功
-    HIT,            # 通常ヒット
-    COUNTER_HIT,    # カウンターヒット（相手行動中にヒット）
-    GRAPPLE_SUCCESS,# グラップル成立
-    GRAPPLE_FAIL    # グラップル失敗（ガード中の相手に試みた等）
+	WHIFF,          # 空振り
+	BLOCKED,        # ガード成功
+	HIT,            # 通常ヒット
+	COUNTER_HIT,    # カウンターヒット（相手行動中にヒット）
+	GRAPPLE_SUCCESS,# グラップル成立
+	GRAPPLE_FAIL    # グラップル失敗（ガード中の相手に試みた等）
 }
 
 enum DamageLayer {
-    RECOVERABLE,    # 回復可能HP（打撃によるダメージ先）
-    PERMANENT       # 回復不可能HP（グラップルによるダメージ先）
+	RECOVERABLE,    # 回復可能HP（打撃によるダメージ先）
+	PERMANENT       # 回復不可能HP（グラップルによるダメージ先）
 }
 
 enum CharacterState {
-    IDLE,
-    WALKING,
-    ATTACKING,      # 打撃モーション中
-    GUARDING,       # ガード中
-    GRAPPLING,      # グラップル中（攻め側）
-    GRAPPLED,       # グラップル中（受け側）
-    HIT_STUN,       # ヒットスタン（のけぞり中）
-    KNOCKDOWN,      # ダウン中（回復可能HP枯渇後）
-    GETTING_UP,     # 起き上がり中
-    INCAPACITATED,  # 行動不可状態（回復可能HP枯渇）
-    KO              # KO（回復不可能HP枯渇）
+	IDLE,
+	WALKING,
+	ATTACKING,      # 打撃モーション中
+	GUARDING,       # ガード中
+	GRAPPLING,      # グラップル中（攻め側）
+	GRAPPLED,       # グラップル中（受け側）
+	HIT_STUN,       # ヒットスタン（のけぞり中）
+	KNOCKDOWN,      # ダウン中（回復可能HP枯渇後）
+	GETTING_UP,     # 起き上がり中
+	INCAPACITATED,  # 行動不可状態（回復可能HP枯渇）
+	KO              # KO（回復不可能HP枯渇）
 }
 
 enum GrapplePosition {
-    NEUTRAL,        # 初期ロックアップ
-    DOMINANT,       # 完全優位（攻め側が技をかけられる状態）
-    SUBDUED         # 完全劣位（受け側）
+	NEUTRAL,        # 初期ロックアップ
+	DOMINANT,       # 完全優位（攻め側が技をかけられる状態）
+	SUBDUED         # 完全劣位（受け側）
 }
 
 enum RoundState {
-    WAITING,
-    FIGHTING,
-    ROUND_END,
-    MATCH_END
+	WAITING,
+	FIGHTING,
+	ROUND_END,
+	MATCH_END
 }
 
 enum PlayerID {
-    PLAYER_ONE,
-    PLAYER_TWO
+	PLAYER_ONE,
+	PLAYER_TWO
 }
 ```
 
@@ -325,96 +325,96 @@ signal incapacitation_ended()            # 行動不可状態終了
 signal recoverable_hp_recovered(amount: float)  # 回復発生通知
 
 func _ready() -> void:
-    # statsが割り当てられていなければエラーログを出してデフォルト値で初期化
-    if stats == null:
-        push_error("HealthComponent: stats is not assigned on " + get_parent().name)
-        stats = CharacterStats.new()
-    _reset()
+	# statsが割り当てられていなければエラーログを出してデフォルト値で初期化
+	if stats == null:
+		push_error("HealthComponent: stats is not assigned on " + get_parent().name)
+		stats = CharacterStats.new()
+	_reset()
 
 func _physics_process(delta: float) -> void:
-    _process_regen(delta)
+	_process_regen(delta)
 
 # --- 公開メソッド ---
 
 func _reset() -> void:
-    current_recoverable_hp = stats.max_recoverable_hp
-    current_permanent_hp = stats.max_permanent_hp
-    _regen_timer = 0.0
-    _is_incapacitated = false
+	current_recoverable_hp = stats.max_recoverable_hp
+	current_permanent_hp = stats.max_permanent_hp
+	_regen_timer = 0.0
+	_is_incapacitated = false
 
 ## ダメージを受ける。DamageLayerによって対象HPが変わる。
 func take_damage(amount: float, layer: GameEnums.DamageLayer) -> void:
-    if _is_incapacitated and layer == GameEnums.DamageLayer.PERMANENT:
-        # 行動不可中はpermanentダメージを追加で受ける（弱体化表現）
-        amount *= 1.3
-    
-    _regen_timer = 0.0  # ダメージを受けたら回復タイマーリセット
-    
-    match layer:
-        GameEnums.DamageLayer.RECOVERABLE:
-            current_recoverable_hp = max(0.0, current_recoverable_hp - amount)
-            recoverable_hp_changed.emit(current_recoverable_hp, stats.max_recoverable_hp)
-            if current_recoverable_hp <= 0.0 and not _is_incapacitated:
-                _on_recoverable_depleted()
-        
-        GameEnums.DamageLayer.PERMANENT:
-            current_permanent_hp = max(0.0, current_permanent_hp - amount)
-            permanent_hp_changed.emit(current_permanent_hp, stats.max_permanent_hp)
-            if current_permanent_hp <= 0.0:
-                permanent_hp_depleted.emit()
+	if _is_incapacitated and layer == GameEnums.DamageLayer.PERMANENT:
+		# 行動不可中はpermanentダメージを追加で受ける（弱体化表現）
+		amount *= 1.3
+	
+	_regen_timer = 0.0  # ダメージを受けたら回復タイマーリセット
+	
+	match layer:
+		GameEnums.DamageLayer.RECOVERABLE:
+			current_recoverable_hp = max(0.0, current_recoverable_hp - amount)
+			recoverable_hp_changed.emit(current_recoverable_hp, stats.max_recoverable_hp)
+			if current_recoverable_hp <= 0.0 and not _is_incapacitated:
+				_on_recoverable_depleted()
+		
+		GameEnums.DamageLayer.PERMANENT:
+			current_permanent_hp = max(0.0, current_permanent_hp - amount)
+			permanent_hp_changed.emit(current_permanent_hp, stats.max_permanent_hp)
+			if current_permanent_hp <= 0.0:
+				permanent_hp_depleted.emit()
 
 ## 行動コスト（スタミナ消費）。回復可能HPから差し引く。
 ## 戻り値：消費できたかどうか（HPが足りない場合はfalse）
 func consume_stamina(amount: float) -> bool:
-    # 最低値を1.0に抑える（完全枯渇による行動不可はtake_damageに任せる）
-    if current_recoverable_hp <= amount:
-        return false  # スタミナ不足で行動不可
-    current_recoverable_hp -= amount
-    recoverable_hp_changed.emit(current_recoverable_hp, stats.max_recoverable_hp)
-    return true
+	# 最低値を1.0に抑える（完全枯渇による行動不可はtake_damageに任せる）
+	if current_recoverable_hp <= amount:
+		return false  # スタミナ不足で行動不可
+	current_recoverable_hp -= amount
+	recoverable_hp_changed.emit(current_recoverable_hp, stats.max_recoverable_hp)
+	return true
 
 ## 現在行動不可状態かどうかを返す
 func is_incapacitated() -> bool:
-    return _is_incapacitated
+	return _is_incapacitated
 
 ## 現在のgrapple dominance倍率を返す（行動不可中は低下）
 func get_dominance_modifier() -> float:
-    if _is_incapacitated:
-        return stats.incapacitated_dominance_penalty
-    return 1.0
+	if _is_incapacitated:
+		return stats.incapacitated_dominance_penalty
+	return 1.0
 
 # --- 内部メソッド ---
 
 func _on_recoverable_depleted() -> void:
-    _is_incapacitated = true
-    current_recoverable_hp = 0.0
-    recoverable_hp_depleted.emit()
-    # 行動不可継続タイマーをセット
-    var timer = get_tree().create_timer(stats.incapacitated_duration)
-    timer.timeout.connect(_on_incapacitation_end)
+	_is_incapacitated = true
+	current_recoverable_hp = 0.0
+	recoverable_hp_depleted.emit()
+	# 行動不可継続タイマーをセット
+	var timer = get_tree().create_timer(stats.incapacitated_duration)
+	timer.timeout.connect(_on_incapacitation_end)
 
 func _on_incapacitation_end() -> void:
-    _is_incapacitated = false
-    # 回復可能HPを最大値の20%で復活させる
-    current_recoverable_hp = stats.max_recoverable_hp * 0.2
-    recoverable_hp_changed.emit(current_recoverable_hp, stats.max_recoverable_hp)
-    incapacitation_ended.emit()
+	_is_incapacitated = false
+	# 回復可能HPを最大値の20%で復活させる
+	current_recoverable_hp = stats.max_recoverable_hp * 0.2
+	recoverable_hp_changed.emit(current_recoverable_hp, stats.max_recoverable_hp)
+	incapacitation_ended.emit()
 
 func _process_regen(delta: float) -> void:
-    # 行動不可中・枯渇中・満タン時は回復しない
-    if _is_incapacitated:
-        return
-    if current_recoverable_hp >= stats.max_recoverable_hp:
-        return
-    
-    _regen_timer += delta
-    if _regen_timer >= stats.recoverable_hp_regen_delay:
-        var regen_amount = stats.recoverable_hp_regen_rate * delta
-        var old_hp = current_recoverable_hp
-        current_recoverable_hp = min(stats.max_recoverable_hp, current_recoverable_hp + regen_amount)
-        if current_recoverable_hp != old_hp:
-            recoverable_hp_changed.emit(current_recoverable_hp, stats.max_recoverable_hp)
-            recoverable_hp_recovered.emit(current_recoverable_hp - old_hp)
+	# 行動不可中・枯渇中・満タン時は回復しない
+	if _is_incapacitated:
+		return
+	if current_recoverable_hp >= stats.max_recoverable_hp:
+		return
+	
+	_regen_timer += delta
+	if _regen_timer >= stats.recoverable_hp_regen_delay:
+		var regen_amount = stats.recoverable_hp_regen_rate * delta
+		var old_hp = current_recoverable_hp
+		current_recoverable_hp = min(stats.max_recoverable_hp, current_recoverable_hp + regen_amount)
+		if current_recoverable_hp != old_hp:
+			recoverable_hp_changed.emit(current_recoverable_hp, stats.max_recoverable_hp)
+			recoverable_hp_recovered.emit(current_recoverable_hp - old_hp)
 ```
 
 ---
@@ -462,84 +462,84 @@ signal hit_landed(target: Node, attack_data: AttackData, result: GameEnums.HitRe
 signal grapple_initiated(target: Node, grapple_data: GrappleData)
 
 func _ready() -> void:
-    # Hitboxは初期状態で無効
-    hitbox.monitoring = false
-    hitbox.monitorable = false
-    # Hurtboxは常時有効
-    hurtbox.monitoring = false
-    hurtbox.monitorable = true
-    
-    # コリジョンレイヤー設定
-    # Layer 1: Player1のHurtbox, Layer 2: Player2のHurtbox
-    # Mask 1: Player1のHitboxはLayer2を検出, Mask 2: 逆
-    # エディタで設定するか、ここでコードで設定
-    hitbox.area_entered.connect(_on_hitbox_area_entered)
+	# Hitboxは初期状態で無効
+	hitbox.monitoring = false
+	hitbox.monitorable = false
+	# Hurtboxは常時有効
+	hurtbox.monitoring = false
+	hurtbox.monitorable = true
+	
+	# コリジョンレイヤー設定
+	# Layer 1: Player1のHurtbox, Layer 2: Player2のHurtbox
+	# Mask 1: Player1のHitboxはLayer2を検出, Mask 2: 逆
+	# エディタで設定するか、ここでコードで設定
+	hitbox.area_entered.connect(_on_hitbox_area_entered)
 
 ## 攻撃判定を有効化する（AnimationPlayerのコールバックから呼ぶ）
 func activate_hitbox(attack: AttackData) -> void:
-    _active_attack = attack
-    _active_grapple = null
-    # HitboxのCollisionShapeをAttackDataのサイズに合わせる
-    var box_shape = BoxShape3D.new()
-    box_shape.size = attack.hitbox_size
-    hitbox_shape.shape = box_shape
-    hitbox_shape.position = attack.hitbox_offset
-    hitbox.monitoring = true
+	_active_attack = attack
+	_active_grapple = null
+	# HitboxのCollisionShapeをAttackDataのサイズに合わせる
+	var box_shape = BoxShape3D.new()
+	box_shape.size = attack.hitbox_size
+	hitbox_shape.shape = box_shape
+	hitbox_shape.position = attack.hitbox_offset
+	hitbox.monitoring = true
 
 ## グラップル判定を有効化する
 func activate_grapple_hitbox(grapple: GrappleData) -> void:
-    _active_grapple = grapple
-    _active_attack = null
-    var box_shape = BoxShape3D.new()
-    box_shape.size = grapple.hitbox_size
-    hitbox_shape.shape = box_shape
-    hitbox_shape.position = grapple.hitbox_offset
-    hitbox.monitoring = true
+	_active_grapple = grapple
+	_active_attack = null
+	var box_shape = BoxShape3D.new()
+	box_shape.size = grapple.hitbox_size
+	hitbox_shape.shape = box_shape
+	hitbox_shape.position = grapple.hitbox_offset
+	hitbox.monitoring = true
 
 ## 攻撃判定を無効化する（AnimationPlayerのコールバックから呼ぶ）
 func deactivate_hitbox() -> void:
-    hitbox.monitoring = false
-    _active_attack = null
-    _active_grapple = null
+	hitbox.monitoring = false
+	_active_attack = null
+	_active_grapple = null
 
 func _on_hitbox_area_entered(area: Area3D) -> void:
-    # 相手のHurtboxに当たったときのみ処理
-    var target_character = area.get_parent().get_parent()  # HurtboxのAreaの親の親＝キャラクターノード
-    
-    if _active_attack != null:
-        var result = _calculate_hit_result(target_character, _active_attack.action_type)
-        hit_landed.emit(target_character, _active_attack, result)
-        deactivate_hitbox()
-    elif _active_grapple != null:
-        grapple_initiated.emit(target_character, _active_grapple)
-        deactivate_hitbox()
+	# 相手のHurtboxに当たったときのみ処理
+	var target_character = area.get_parent().get_parent()  # HurtboxのAreaの親の親＝キャラクターノード
+	
+	if _active_attack != null:
+		var result = _calculate_hit_result(target_character, _active_attack.action_type)
+		hit_landed.emit(target_character, _active_attack, result)
+		deactivate_hitbox()
+	elif _active_grapple != null:
+		grapple_initiated.emit(target_character, _active_grapple)
+		deactivate_hitbox()
 
 ## ヒット結果を計算する
 func _calculate_hit_result(target: Node, action_type: GameEnums.ActionType) -> GameEnums.HitResult:
-    # ターゲットのCombatControllerからステートを取得
-    var target_controller = target.get_node_or_null("CombatController")
-    if target_controller == null:
-        return GameEnums.HitResult.HIT
-    
-    var target_state = target_controller.get_current_state()
-    
-    # ガード判定
-    if target_state == GameEnums.CharacterState.GUARDING:
-        if action_type == GameEnums.ActionType.GRAPPLE:
-            return GameEnums.HitResult.GRAPPLE_SUCCESS  # ガード貫通
-        else:
-            return GameEnums.HitResult.BLOCKED
-    
-    # カウンターヒット判定（相手が攻撃モーション中）
-    if target_state == GameEnums.CharacterState.ATTACKING:
-        return GameEnums.HitResult.COUNTER_HIT
-    
-    # ヒットスタン中・行動不可中はカウンター扱い
-    if target_state == GameEnums.CharacterState.HIT_STUN or \
-       target_state == GameEnums.CharacterState.INCAPACITATED:
-        return GameEnums.HitResult.COUNTER_HIT
-    
-    return GameEnums.HitResult.HIT
+	# ターゲットのCombatControllerからステートを取得
+	var target_controller = target.get_node_or_null("CombatController")
+	if target_controller == null:
+		return GameEnums.HitResult.HIT
+	
+	var target_state = target_controller.get_current_state()
+	
+	# ガード判定
+	if target_state == GameEnums.CharacterState.GUARDING:
+		if action_type == GameEnums.ActionType.GRAPPLE:
+			return GameEnums.HitResult.GRAPPLE_SUCCESS  # ガード貫通
+		else:
+			return GameEnums.HitResult.BLOCKED
+	
+	# カウンターヒット判定（相手が攻撃モーション中）
+	if target_state == GameEnums.CharacterState.ATTACKING:
+		return GameEnums.HitResult.COUNTER_HIT
+	
+	# ヒットスタン中・行動不可中はカウンター扱い
+	if target_state == GameEnums.CharacterState.HIT_STUN or \
+	   target_state == GameEnums.CharacterState.INCAPACITATED:
+		return GameEnums.HitResult.COUNTER_HIT
+	
+	return GameEnums.HitResult.HIT
 ```
 
 ### 3-B. DamageCalculator（静的クラス）
@@ -553,58 +553,58 @@ extends RefCounted
 ## AttackData + HitResult + 両者のCharacterStats からダメージを計算して返す
 ## 戻り値: { "recoverable": float, "permanent": float }
 static func calculate_attack_damage(
-    attack: AttackData,
-    result: GameEnums.HitResult,
-    attacker_stats: CharacterStats,
-    defender_stats: CharacterStats
+	attack: AttackData,
+	result: GameEnums.HitResult,
+	attacker_stats: CharacterStats,
+	defender_stats: CharacterStats
 ) -> Dictionary:
-    
-    var rec_dmg: float = attack.recoverable_damage
-    var perm_dmg: float = attack.permanent_damage
-    
-    # 攻撃者のステータス倍率
-    match attack.action_type:
-        GameEnums.ActionType.PUNCH:
-            rec_dmg *= attacker_stats.punch_damage_multiplier
-        GameEnums.ActionType.KICK:
-            rec_dmg *= attacker_stats.kick_damage_multiplier
-    
-    # カウンターヒット倍率
-    if result == GameEnums.HitResult.COUNTER_HIT:
-        rec_dmg *= attack.counter_hit_multiplier
-        perm_dmg *= attack.counter_hit_multiplier
-    
-    # ガード時はダメージなし（ブロックスタンのみ）
-    if result == GameEnums.HitResult.BLOCKED:
-        return {"recoverable": 0.0, "permanent": 0.0}
-    
-    # 防御者のステータス倍率
-    rec_dmg *= defender_stats.defense_multiplier
-    perm_dmg *= defender_stats.defense_multiplier
-    
-    return {"recoverable": rec_dmg, "permanent": perm_dmg}
+	
+	var rec_dmg: float = attack.recoverable_damage
+	var perm_dmg: float = attack.permanent_damage
+	
+	# 攻撃者のステータス倍率
+	match attack.action_type:
+		GameEnums.ActionType.PUNCH:
+			rec_dmg *= attacker_stats.punch_damage_multiplier
+		GameEnums.ActionType.KICK:
+			rec_dmg *= attacker_stats.kick_damage_multiplier
+	
+	# カウンターヒット倍率
+	if result == GameEnums.HitResult.COUNTER_HIT:
+		rec_dmg *= attack.counter_hit_multiplier
+		perm_dmg *= attack.counter_hit_multiplier
+	
+	# ガード時はダメージなし（ブロックスタンのみ）
+	if result == GameEnums.HitResult.BLOCKED:
+		return {"recoverable": 0.0, "permanent": 0.0}
+	
+	# 防御者のステータス倍率
+	rec_dmg *= defender_stats.defense_multiplier
+	perm_dmg *= defender_stats.defense_multiplier
+	
+	return {"recoverable": rec_dmg, "permanent": perm_dmg}
 
 ## GrappleDataからダメージを計算
 static func calculate_grapple_damage(
-    grapple: GrappleData,
-    dominance: float,  # 0.0〜1.0
-    attacker_stats: CharacterStats,
-    defender_stats: CharacterStats
+	grapple: GrappleData,
+	dominance: float,  # 0.0〜1.0
+	attacker_stats: CharacterStats,
+	defender_stats: CharacterStats
 ) -> Dictionary:
-    
-    var perm_dmg: float = grapple.permanent_damage
-    var rec_dmg: float = grapple.recoverable_damage
-    
-    perm_dmg *= attacker_stats.grapple_damage_multiplier
-    
-    # dominanceが閾値以上の場合のみダメージ倍率適用
-    if dominance >= grapple.dominance_damage_threshold:
-        perm_dmg *= grapple.dominant_damage_multiplier
-    
-    perm_dmg *= defender_stats.defense_multiplier
-    rec_dmg *= defender_stats.defense_multiplier
-    
-    return {"recoverable": rec_dmg, "permanent": perm_dmg}
+	
+	var perm_dmg: float = grapple.permanent_damage
+	var rec_dmg: float = grapple.recoverable_damage
+	
+	perm_dmg *= attacker_stats.grapple_damage_multiplier
+	
+	# dominanceが閾値以上の場合のみダメージ倍率適用
+	if dominance >= grapple.dominance_damage_threshold:
+		perm_dmg *= grapple.dominant_damage_multiplier
+	
+	perm_dmg *= defender_stats.defense_multiplier
+	rec_dmg *= defender_stats.defense_multiplier
+	
+	return {"recoverable": rec_dmg, "permanent": perm_dmg}
 ```
 
 ---
@@ -665,101 +665,101 @@ signal grapple_ended(winner: Node, loser: Node)
 signal dominance_changed(new_dominance: float)
 
 func _physics_process(delta: float) -> void:
-    if not is_active:
-        return
-    
-    _process_dominance(delta)
-    _process_damage(delta)
-    _reset_frame_inputs()
+	if not is_active:
+		return
+	
+	_process_dominance(delta)
+	_process_damage(delta)
+	_reset_frame_inputs()
 
 ## グラップル開始
 func start_grapple(initiator: Node, receiver: Node, grapple_data: GrappleData) -> void:
-    grapple_initiator = initiator
-    grapple_receiver = receiver
-    active_grapple_data = grapple_data
-    dominance = 0.5
-    _damage_interval_timer = 0.0
-    is_active = true
-    
-    # 両キャラのポジション固定（受け側を攻め側の正面に移動）
-    var initiator_pos = initiator.global_position
-    var initiator_forward = -initiator.global_transform.basis.z
-    receiver.global_position = initiator_pos + initiator_forward * 1.0
-    receiver.look_at(initiator_pos, Vector3.UP)
-    
-    # 両者のステート遷移はFightManagerが行う
+	grapple_initiator = initiator
+	grapple_receiver = receiver
+	active_grapple_data = grapple_data
+	dominance = 0.5
+	_damage_interval_timer = 0.0
+	is_active = true
+	
+	# 両キャラのポジション固定（受け側を攻め側の正面に移動）
+	var initiator_pos = initiator.global_position
+	var initiator_forward = -initiator.global_transform.basis.z
+	receiver.global_position = initiator_pos + initiator_forward * 1.0
+	receiver.look_at(initiator_pos, Vector3.UP)
+	
+	# 両者のステート遷移はFightManagerが行う
 
 ## グラップル入力登録（各キャラクターのInputHandlerから呼ぶ）
 func register_input(player_id: GameEnums.PlayerID) -> void:
-    if not is_active:
-        return
-    
-    # 行動不可中はdominance変動量を削減
-    var initiator_health = grapple_initiator.get_node("HealthComponent")
-    var receiver_health = grapple_receiver.get_node("HealthComponent")
-    
-    if player_id == _get_initiator_player_id():
-        var modifier = initiator_health.get_dominance_modifier()
-        dominance = min(1.0, dominance + DOMINANCE_GAIN_PER_INPUT * modifier)
-        _initiator_input_this_frame = true
-    else:
-        var modifier = receiver_health.get_dominance_modifier()
-        dominance = max(0.0, dominance - DOMINANCE_GAIN_PER_INPUT * modifier)
-        _receiver_input_this_frame = true
-    
-    dominance_changed.emit(dominance)
+	if not is_active:
+		return
+	
+	# 行動不可中はdominance変動量を削減
+	var initiator_health = grapple_initiator.get_node("HealthComponent")
+	var receiver_health = grapple_receiver.get_node("HealthComponent")
+	
+	if player_id == _get_initiator_player_id():
+		var modifier = initiator_health.get_dominance_modifier()
+		dominance = min(1.0, dominance + DOMINANCE_GAIN_PER_INPUT * modifier)
+		_initiator_input_this_frame = true
+	else:
+		var modifier = receiver_health.get_dominance_modifier()
+		dominance = max(0.0, dominance - DOMINANCE_GAIN_PER_INPUT * modifier)
+		_receiver_input_this_frame = true
+	
+	dominance_changed.emit(dominance)
 
 func _process_dominance(delta: float) -> void:
-    # 入力がないフレームは中立（0.5）に向かって収束
-    if not _initiator_input_this_frame:
-        dominance = move_toward(dominance, 0.5, DOMINANCE_DECAY_RATE * delta)
-    if not _receiver_input_this_frame:
-        dominance = move_toward(dominance, 0.5, DOMINANCE_DECAY_RATE * delta)
-    
-    # 逆転判定
-    if dominance >= DOMINANCE_DAMAGE_THRESHOLD:
-        pass  # _process_damageで処理
-    elif dominance <= DOMINANCE_REVERSE_THRESHOLD:
-        _on_receiver_reversal()
+	# 入力がないフレームは中立（0.5）に向かって収束
+	if not _initiator_input_this_frame:
+		dominance = move_toward(dominance, 0.5, DOMINANCE_DECAY_RATE * delta)
+	if not _receiver_input_this_frame:
+		dominance = move_toward(dominance, 0.5, DOMINANCE_DECAY_RATE * delta)
+	
+	# 逆転判定
+	if dominance >= DOMINANCE_DAMAGE_THRESHOLD:
+		pass  # _process_damageで処理
+	elif dominance <= DOMINANCE_REVERSE_THRESHOLD:
+		_on_receiver_reversal()
 
 func _process_damage(delta: float) -> void:
-    _damage_interval_timer += delta
-    if _damage_interval_timer < DAMAGE_INTERVAL:
-        return
-    _damage_interval_timer = 0.0
-    
-    if dominance >= DOMINANCE_DAMAGE_THRESHOLD:
-        var initiator_stats: CharacterStats = grapple_initiator.get_node("HealthComponent").stats
-        var receiver_stats: CharacterStats = grapple_receiver.get_node("HealthComponent").stats
-        var dmg = DamageCalculator.calculate_grapple_damage(
-            active_grapple_data, dominance, initiator_stats, receiver_stats
-        )
-        grapple_damage_dealt.emit(grapple_receiver, dmg["recoverable"], dmg["permanent"])
+	_damage_interval_timer += delta
+	if _damage_interval_timer < DAMAGE_INTERVAL:
+		return
+	_damage_interval_timer = 0.0
+	
+	if dominance >= DOMINANCE_DAMAGE_THRESHOLD:
+		var initiator_stats: CharacterStats = grapple_initiator.get_node("HealthComponent").stats
+		var receiver_stats: CharacterStats = grapple_receiver.get_node("HealthComponent").stats
+		var dmg = DamageCalculator.calculate_grapple_damage(
+			active_grapple_data, dominance, initiator_stats, receiver_stats
+		)
+		grapple_damage_dealt.emit(grapple_receiver, dmg["recoverable"], dmg["permanent"])
 
 func _on_receiver_reversal() -> void:
-    # 受け側が逆転成功 → グラップル終了、受け側が有利
-    var winner = grapple_receiver
-    var loser = grapple_initiator
-    _end_grapple(winner, loser)
+	# 受け側が逆転成功 → グラップル終了、受け側が有利
+	var winner = grapple_receiver
+	var loser = grapple_initiator
+	_end_grapple(winner, loser)
 
 func end_grapple_by_timeout() -> void:
-    # タイムアウト等で強制終了
-    _end_grapple(null, null)
+	# タイムアウト等で強制終了
+	_end_grapple(null, null)
 
 func _end_grapple(winner: Node, loser: Node) -> void:
-    is_active = false
-    grapple_ended.emit(winner, loser)
-    grapple_initiator = null
-    grapple_receiver = null
-    active_grapple_data = null
+	is_active = false
+	grapple_ended.emit(winner, loser)
+	grapple_initiator = null
+	grapple_receiver = null
+	active_grapple_data = null
 
 func _reset_frame_inputs() -> void:
-    _initiator_input_this_frame = false
-    _receiver_input_this_frame = false
+	_initiator_input_this_frame = false
+	_receiver_input_this_frame = false
 
 func _get_initiator_player_id() -> GameEnums.PlayerID:
-    # initiatorのPlayerIDを取得する（CombatControllerが持つ）
-    return grapple_initiator.get_node("CombatController").player_id
+	# initiatorのPlayerIDを取得する（CombatControllerが持つ）
+	return grapple_initiator.get_node("CombatController").player_id
 ```
 
 ---
@@ -820,12 +820,12 @@ ROOT（AttackData=null, branches={P:node_P, K:node_K}）
 │       ├── PKP（punch_heavy.tres, is_ender=true, hit_count=3）
 │       └── PKK（kick_heavy.tres, is_ender=true, hit_count=3）
 └── K（kick_light.tres, branches={P:node_KP, K:node_KK}, hit_count=1）
-    ├── KP（punch_light.tres, branches={P:node_KPP, K:node_KPK}, hit_count=2）
-    │   ├── KPP（punch_heavy.tres, is_ender=true, hit_count=3）
-    │   └── KPK（kick_heavy.tres, is_ender=true, hit_count=3）
-    └── KK（kick_heavy.tres, branches={P:node_KKP, K:node_KKK}, hit_count=2）
-        ├── KKP（punch_heavy.tres, is_ender=true, hit_count=3）
-        └── KKK（kick_heavy.tres, is_ender=true, hit_count=3）
+	├── KP（punch_light.tres, branches={P:node_KPP, K:node_KPK}, hit_count=2）
+	│   ├── KPP（punch_heavy.tres, is_ender=true, hit_count=3）
+	│   └── KPK（kick_heavy.tres, is_ender=true, hit_count=3）
+	└── KK（kick_heavy.tres, branches={P:node_KKP, K:node_KKK}, hit_count=2）
+		├── KKP（punch_heavy.tres, is_ender=true, hit_count=3）
+		└── KKK（kick_heavy.tres, is_ender=true, hit_count=3）
 ```
 
 ### 5-B. ComboManager
@@ -851,73 +851,73 @@ signal combo_attack_resolved(attack: AttackData, is_ender: bool, ender_multiplie
 signal combo_reset()
 
 func _physics_process(_delta: float) -> void:
-    if _window_open and _window_timer > 0:
-        _window_timer -= 1
-        if _window_timer <= 0:
-            _reset_combo()
+	if _window_open and _window_timer > 0:
+		_window_timer -= 1
+		if _window_timer <= 0:
+			_reset_combo()
 
 ## コンボウィンドウを開く（AnimationPlayerのコールバックから呼ぶ）
 func open_combo_window() -> void:
-    if _current_node == null:
-        return
-    var window = _current_node.window_frames
-    _window_timer = window
-    _window_open = true
+	if _current_node == null:
+		return
+	var window = _current_node.window_frames
+	_window_timer = window
+	_window_open = true
 
 ## コンボウィンドウを閉じる（AnimationPlayerのコールバックから呼ぶ）
 func close_combo_window() -> void:
-    _window_open = false
-    if _current_node != null and not _current_node.is_ender:
-        # ウィンドウが閉じたがエンダーでなければリセット
-        _reset_combo()
+	_window_open = false
+	if _current_node != null and not _current_node.is_ender:
+		# ウィンドウが閉じたがエンダーでなければリセット
+		_reset_combo()
 
 ## 打撃入力を受け付ける
 ## 戻り値: 実行すべきAttackData（コンボ継続）またはnull（コンボ外単発）
 func try_input(action: GameEnums.ActionType) -> AttackData:
-    var key = _action_to_key(action)
-    if key == "":
-        return null
-    
-    if _current_node == null:
-        # コンボ未開始 → ルートのbranchesを確認
-        if combo_tree_root.branches.has(key):
-            _current_node = combo_tree_root.branches[key]
-            var atk = _current_node.attack_data
-            if _current_node.is_ender:
-                combo_attack_resolved.emit(atk, true, _current_node.ender_damage_multiplier)
-                _reset_combo()
-            else:
-                combo_attack_resolved.emit(atk, false, 1.0)
-            return atk
-    else:
-        # コンボ継続中 → ウィンドウが開いているかチェック
-        if _window_open and _current_node.branches.has(key):
-            _current_node = _current_node.branches[key]
-            var atk = _current_node.attack_data
-            if _current_node.is_ender:
-                combo_attack_resolved.emit(atk, true, _current_node.ender_damage_multiplier)
-                _reset_combo()
-            else:
-                combo_attack_resolved.emit(atk, false, 1.0)
-            return atk
-        else:
-            # ウィンドウ外 or 繋がらない入力 → リセットして単発として処理
-            _reset_combo()
-            return try_input(action)  # 再試行（単発として）
-    
-    return null
+	var key = _action_to_key(action)
+	if key == "":
+		return null
+	
+	if _current_node == null:
+		# コンボ未開始 → ルートのbranchesを確認
+		if combo_tree_root.branches.has(key):
+			_current_node = combo_tree_root.branches[key]
+			var atk = _current_node.attack_data
+			if _current_node.is_ender:
+				combo_attack_resolved.emit(atk, true, _current_node.ender_damage_multiplier)
+				_reset_combo()
+			else:
+				combo_attack_resolved.emit(atk, false, 1.0)
+			return atk
+	else:
+		# コンボ継続中 → ウィンドウが開いているかチェック
+		if _window_open and _current_node.branches.has(key):
+			_current_node = _current_node.branches[key]
+			var atk = _current_node.attack_data
+			if _current_node.is_ender:
+				combo_attack_resolved.emit(atk, true, _current_node.ender_damage_multiplier)
+				_reset_combo()
+			else:
+				combo_attack_resolved.emit(atk, false, 1.0)
+			return atk
+		else:
+			# ウィンドウ外 or 繋がらない入力 → リセットして単発として処理
+			_reset_combo()
+			return try_input(action)  # 再試行（単発として）
+	
+	return null
 
 func _reset_combo() -> void:
-    _current_node = null
-    _window_open = false
-    _window_timer = 0
-    combo_reset.emit()
+	_current_node = null
+	_window_open = false
+	_window_timer = 0
+	combo_reset.emit()
 
 func _action_to_key(action: GameEnums.ActionType) -> String:
-    match action:
-        GameEnums.ActionType.PUNCH: return "PUNCH"
-        GameEnums.ActionType.KICK: return "KICK"
-    return ""
+	match action:
+		GameEnums.ActionType.PUNCH: return "PUNCH"
+		GameEnums.ActionType.KICK: return "KICK"
+	return ""
 ```
 
 ---
@@ -939,19 +939,19 @@ var combat_controller: Node = null
 
 # ステート開始時に呼ばれる
 func enter(_prev_state: GameEnums.CharacterState) -> void:
-    pass
+	pass
 
 # ステート終了時に呼ばれる
 func exit(_next_state: GameEnums.CharacterState) -> void:
-    pass
+	pass
 
 # _physics_process相当（CombatControllerから呼ばれる）
 func update(_delta: float) -> void:
-    pass
+	pass
 
 # 入力を受け取る（CombatControllerから呼ばれる）
 func handle_input(_action: GameEnums.ActionType) -> void:
-    pass
+	pass
 ```
 
 ### 6-B. CombatController（ステートマシン本体）
@@ -995,87 +995,87 @@ signal state_changed(new_state: GameEnums.CharacterState)
 signal action_requested(action: GameEnums.ActionType)
 
 func _ready() -> void:
-    # 各ステートにcombat_controllerを設定
-    for child in get_children():
-        if child is BaseState:
-            child.combat_controller = self
-    
-    # HealthComponentのシグナル接続
-    health.recoverable_hp_depleted.connect(_on_recoverable_hp_depleted)
-    health.permanent_hp_depleted.connect(_on_permanent_hp_depleted)
-    health.incapacitation_ended.connect(_on_incapacitation_ended)
-    
-    # HitboxManagerのシグナル接続
-    hitbox_manager.hit_landed.connect(_on_hit_landed)
-    hitbox_manager.grapple_initiated.connect(_on_grapple_initiated)
-    
-    transition_to(GameEnums.CharacterState.IDLE)
+	# 各ステートにcombat_controllerを設定
+	for child in get_children():
+		if child is BaseState:
+			child.combat_controller = self
+	
+	# HealthComponentのシグナル接続
+	health.recoverable_hp_depleted.connect(_on_recoverable_hp_depleted)
+	health.permanent_hp_depleted.connect(_on_permanent_hp_depleted)
+	health.incapacitation_ended.connect(_on_incapacitation_ended)
+	
+	# HitboxManagerのシグナル接続
+	hitbox_manager.hit_landed.connect(_on_hit_landed)
+	hitbox_manager.grapple_initiated.connect(_on_grapple_initiated)
+	
+	transition_to(GameEnums.CharacterState.IDLE)
 
 func _physics_process(delta: float) -> void:
-    if _current_state_node:
-        _current_state_node.update(delta)
+	if _current_state_node:
+		_current_state_node.update(delta)
 
 ## 外部からの入力受付（InputHandlerから呼ぶ）
 func receive_input(action: GameEnums.ActionType) -> void:
-    if _current_state_node:
-        _current_state_node.handle_input(action)
+	if _current_state_node:
+		_current_state_node.handle_input(action)
 
 ## ステート遷移（外部・内部どちらからでも呼べる）
 func transition_to(new_state: GameEnums.CharacterState) -> void:
-    if _current_state == new_state:
-        return
-    
-    var prev = _current_state
-    if _current_state_node:
-        _current_state_node.exit(new_state)
-    
-    _current_state = new_state
-    _current_state_node = _get_state_node(new_state)
-    
-    if _current_state_node:
-        _current_state_node.enter(prev)
-    
-    state_changed.emit(new_state)
+	if _current_state == new_state:
+		return
+	
+	var prev = _current_state
+	if _current_state_node:
+		_current_state_node.exit(new_state)
+	
+	_current_state = new_state
+	_current_state_node = _get_state_node(new_state)
+	
+	if _current_state_node:
+		_current_state_node.enter(prev)
+	
+	state_changed.emit(new_state)
 
 func get_current_state() -> GameEnums.CharacterState:
-    return _current_state
+	return _current_state
 
 # --- シグナルハンドラ ---
 
 func _on_recoverable_hp_depleted() -> void:
-    transition_to(GameEnums.CharacterState.INCAPACITATED)
+	transition_to(GameEnums.CharacterState.INCAPACITATED)
 
 func _on_permanent_hp_depleted() -> void:
-    transition_to(GameEnums.CharacterState.KO)
+	transition_to(GameEnums.CharacterState.KO)
 
 func _on_incapacitation_ended() -> void:
-    transition_to(GameEnums.CharacterState.GETTING_UP)
+	transition_to(GameEnums.CharacterState.GETTING_UP)
 
 func _on_hit_landed(target: Node, attack: AttackData, result: GameEnums.HitResult) -> void:
-    # FightManagerにhit情報を伝達
-    var fight_manager = get_tree().get_first_node_in_group("fight_manager")
-    if fight_manager:
-        fight_manager.process_hit(self, target, attack, result)
+	# FightManagerにhit情報を伝達
+	var fight_manager = get_tree().get_first_node_in_group("fight_manager")
+	if fight_manager:
+		fight_manager.process_hit(self, target, attack, result)
 
 func _on_grapple_initiated(target: Node, grapple: GrappleData) -> void:
-    var fight_manager = get_tree().get_first_node_in_group("fight_manager")
-    if fight_manager:
-        fight_manager.process_grapple_start(self, target, grapple)
+	var fight_manager = get_tree().get_first_node_in_group("fight_manager")
+	if fight_manager:
+		fight_manager.process_grapple_start(self, target, grapple)
 
 func _get_state_node(state: GameEnums.CharacterState) -> BaseState:
-    match state:
-        GameEnums.CharacterState.IDLE: return state_idle
-        GameEnums.CharacterState.WALKING: return state_walking
-        GameEnums.CharacterState.ATTACKING: return state_attacking
-        GameEnums.CharacterState.GUARDING: return state_guarding
-        GameEnums.CharacterState.GRAPPLING: return state_grappling
-        GameEnums.CharacterState.GRAPPLED: return state_grappled
-        GameEnums.CharacterState.HIT_STUN: return state_hit_stun
-        GameEnums.CharacterState.KNOCKDOWN: return state_knockdown
-        GameEnums.CharacterState.GETTING_UP: return state_getting_up
-        GameEnums.CharacterState.INCAPACITATED: return state_incapacitated
-        GameEnums.CharacterState.KO: return state_ko
-    return null
+	match state:
+		GameEnums.CharacterState.IDLE: return state_idle
+		GameEnums.CharacterState.WALKING: return state_walking
+		GameEnums.CharacterState.ATTACKING: return state_attacking
+		GameEnums.CharacterState.GUARDING: return state_guarding
+		GameEnums.CharacterState.GRAPPLING: return state_grappling
+		GameEnums.CharacterState.GRAPPLED: return state_grappled
+		GameEnums.CharacterState.HIT_STUN: return state_hit_stun
+		GameEnums.CharacterState.KNOCKDOWN: return state_knockdown
+		GameEnums.CharacterState.GETTING_UP: return state_getting_up
+		GameEnums.CharacterState.INCAPACITATED: return state_incapacitated
+		GameEnums.CharacterState.KO: return state_ko
+	return null
 ```
 
 ### 6-C. 各ステートの実装
@@ -1088,20 +1088,20 @@ class_name StateIdle
 extends BaseState
 
 func enter(_prev: GameEnums.CharacterState) -> void:
-    combat_controller.anim_player.play("idle")
+	combat_controller.anim_player.play("idle")
 
 func handle_input(action: GameEnums.ActionType) -> void:
-    match action:
-        GameEnums.ActionType.PUNCH, GameEnums.ActionType.KICK:
-            # スタミナ確認してからAttackへ
-            var attack = combat_controller.combo_manager.try_input(action)
-            if attack != null:
-                combat_controller.transition_to(GameEnums.CharacterState.ATTACKING)
-        GameEnums.ActionType.GRAPPLE:
-            if combat_controller.health.consume_stamina(12.0):  # GrappleDataのstamina_costに合わせる
-                combat_controller.transition_to(GameEnums.CharacterState.ATTACKING)  # グラップル開始
-        GameEnums.ActionType.GUARD:
-            combat_controller.transition_to(GameEnums.CharacterState.GUARDING)
+	match action:
+		GameEnums.ActionType.PUNCH, GameEnums.ActionType.KICK:
+			# スタミナ確認してからAttackへ
+			var attack = combat_controller.combo_manager.try_input(action)
+			if attack != null:
+				combat_controller.transition_to(GameEnums.CharacterState.ATTACKING)
+		GameEnums.ActionType.GRAPPLE:
+			if combat_controller.health.consume_stamina(12.0):  # GrappleDataのstamina_costに合わせる
+				combat_controller.transition_to(GameEnums.CharacterState.ATTACKING)  # グラップル開始
+		GameEnums.ActionType.GUARD:
+			combat_controller.transition_to(GameEnums.CharacterState.GUARDING)
 ```
 
 #### `StateAttacking.gd`
@@ -1114,43 +1114,43 @@ var _frame_counter: int = 0
 var _phase: String = "startup"  # "startup" / "active" / "recovery"
 
 func enter(_prev: GameEnums.CharacterState) -> void:
-    _frame_counter = 0
-    _phase = "startup"
-    # ComboManagerから現在の攻撃データを取得（CombatControllerが保持）
-    _current_attack = combat_controller._pending_attack
-    if _current_attack == null:
-        combat_controller.transition_to(GameEnums.CharacterState.IDLE)
-        return
-    combat_controller.anim_player.play(_current_attack.animation_name)
+	_frame_counter = 0
+	_phase = "startup"
+	# ComboManagerから現在の攻撃データを取得（CombatControllerが保持）
+	_current_attack = combat_controller._pending_attack
+	if _current_attack == null:
+		combat_controller.transition_to(GameEnums.CharacterState.IDLE)
+		return
+	combat_controller.anim_player.play(_current_attack.animation_name)
 
 func update(_delta: float) -> void:
-    _frame_counter += 1
-    match _phase:
-        "startup":
-            if _frame_counter >= _current_attack.startup_frames:
-                _phase = "active"
-                _frame_counter = 0
-                combat_controller.hitbox_manager.activate_hitbox(_current_attack)
-        "active":
-            if _frame_counter >= _current_attack.active_frames:
-                _phase = "recovery"
-                _frame_counter = 0
-                combat_controller.hitbox_manager.deactivate_hitbox()
-                combat_controller.combo_manager.open_combo_window()
-        "recovery":
-            if _frame_counter >= _current_attack.recovery_frames:
-                combat_controller.combo_manager.close_combo_window()
-                combat_controller.transition_to(GameEnums.CharacterState.IDLE)
+	_frame_counter += 1
+	match _phase:
+		"startup":
+			if _frame_counter >= _current_attack.startup_frames:
+				_phase = "active"
+				_frame_counter = 0
+				combat_controller.hitbox_manager.activate_hitbox(_current_attack)
+		"active":
+			if _frame_counter >= _current_attack.active_frames:
+				_phase = "recovery"
+				_frame_counter = 0
+				combat_controller.hitbox_manager.deactivate_hitbox()
+				combat_controller.combo_manager.open_combo_window()
+		"recovery":
+			if _frame_counter >= _current_attack.recovery_frames:
+				combat_controller.combo_manager.close_combo_window()
+				combat_controller.transition_to(GameEnums.CharacterState.IDLE)
 
 func handle_input(action: GameEnums.ActionType) -> void:
-    # コンボウィンドウ中のみ次の入力を受け付ける
-    if _phase == "recovery":
-        var next_attack = combat_controller.combo_manager.try_input(action)
-        if next_attack != null:
-            combat_controller._pending_attack = next_attack
-            # 次のAttackステートへ（リセットして再enter）
-            combat_controller.transition_to(GameEnums.CharacterState.IDLE)
-            combat_controller.transition_to(GameEnums.CharacterState.ATTACKING)
+	# コンボウィンドウ中のみ次の入力を受け付ける
+	if _phase == "recovery":
+		var next_attack = combat_controller.combo_manager.try_input(action)
+		if next_attack != null:
+			combat_controller._pending_attack = next_attack
+			# 次のAttackステートへ（リセットして再enter）
+			combat_controller.transition_to(GameEnums.CharacterState.IDLE)
+			combat_controller.transition_to(GameEnums.CharacterState.ATTACKING)
 ```
 
 #### `StateGuarding.gd`
@@ -1162,23 +1162,23 @@ var _guard_timer: float = 0.0
 const MAX_GUARD_HOLD: float = 3.0  # 最大ガード継続時間
 
 func enter(_prev: GameEnums.CharacterState) -> void:
-    _guard_timer = 0.0
-    combat_controller.anim_player.play("guard")
+	_guard_timer = 0.0
+	combat_controller.anim_player.play("guard")
 
 func update(delta: float) -> void:
-    _guard_timer += delta
-    # スタミナをじわじわ消費（ガードは体力を使う）
-    combat_controller.health.take_damage(2.0 * delta, GameEnums.DamageLayer.RECOVERABLE)
-    if _guard_timer >= MAX_GUARD_HOLD:
-        combat_controller.transition_to(GameEnums.CharacterState.IDLE)
+	_guard_timer += delta
+	# スタミナをじわじわ消費（ガードは体力を使う）
+	combat_controller.health.take_damage(2.0 * delta, GameEnums.DamageLayer.RECOVERABLE)
+	if _guard_timer >= MAX_GUARD_HOLD:
+		combat_controller.transition_to(GameEnums.CharacterState.IDLE)
 
 func handle_input(action: GameEnums.ActionType) -> void:
-    if action != GameEnums.ActionType.GUARD:
-        # ガードボタン離し相当
-        combat_controller.transition_to(GameEnums.CharacterState.IDLE)
+	if action != GameEnums.ActionType.GUARD:
+		# ガードボタン離し相当
+		combat_controller.transition_to(GameEnums.CharacterState.IDLE)
 
 func exit(_next: GameEnums.CharacterState) -> void:
-    pass
+	pass
 ```
 
 #### `StateHitStun.gd`
@@ -1190,18 +1190,18 @@ var _stun_frames: int = 0
 var _frame_counter: int = 0
 
 func enter(_prev: GameEnums.CharacterState) -> void:
-    _frame_counter = 0
-    _stun_frames = combat_controller._pending_hit_stun_frames
-    combat_controller.anim_player.play("hit_stun")
+	_frame_counter = 0
+	_stun_frames = combat_controller._pending_hit_stun_frames
+	combat_controller.anim_player.play("hit_stun")
 
 func update(_delta: float) -> void:
-    _frame_counter += 1
-    if _frame_counter >= _stun_frames:
-        combat_controller.transition_to(GameEnums.CharacterState.IDLE)
+	_frame_counter += 1
+	if _frame_counter >= _stun_frames:
+		combat_controller.transition_to(GameEnums.CharacterState.IDLE)
 
 # ヒットスタン中は入力を受け付けない
 func handle_input(_action: GameEnums.ActionType) -> void:
-    pass
+	pass
 ```
 
 #### `StateIncapacitated.gd`
@@ -1210,12 +1210,12 @@ class_name StateIncapacitated
 extends BaseState
 
 func enter(_prev: GameEnums.CharacterState) -> void:
-    combat_controller.anim_player.play("knockdown")
-    # HealthComponentのタイマーが終了すると自動でincapacitation_ended → GETTING_UP
+	combat_controller.anim_player.play("knockdown")
+	# HealthComponentのタイマーが終了すると自動でincapacitation_ended → GETTING_UP
 
 # 行動不可中は一切の入力を無効化
 func handle_input(_action: GameEnums.ActionType) -> void:
-    pass
+	pass
 ```
 
 #### `StateGettingUp.gd`
@@ -1224,12 +1224,12 @@ class_name StateGettingUp
 extends BaseState
 
 func enter(_prev: GameEnums.CharacterState) -> void:
-    combat_controller.anim_player.play("getting_up")
-    # アニメ終了でIdleへ
-    combat_controller.anim_player.animation_finished.connect(_on_anim_finished, CONNECT_ONE_SHOT)
+	combat_controller.anim_player.play("getting_up")
+	# アニメ終了でIdleへ
+	combat_controller.anim_player.animation_finished.connect(_on_anim_finished, CONNECT_ONE_SHOT)
 
 func _on_anim_finished(_anim_name: String) -> void:
-    combat_controller.transition_to(GameEnums.CharacterState.IDLE)
+	combat_controller.transition_to(GameEnums.CharacterState.IDLE)
 ```
 
 #### `StateKO.gd`
@@ -1238,11 +1238,11 @@ class_name StateKO
 extends BaseState
 
 func enter(_prev: GameEnums.CharacterState) -> void:
-    combat_controller.anim_player.play("ko")
-    # KO演出はFightManagerが管理するため、ここではアニメ再生のみ
+	combat_controller.anim_player.play("ko")
+	# KO演出はFightManagerが管理するため、ここではアニメ再生のみ
 
 func handle_input(_action: GameEnums.ActionType) -> void:
-    pass  # KO中は一切の入力無効
+	pass  # KO中は一切の入力無効
 ```
 
 #### `StateGrappling.gd` / `StateGrappled.gd`
@@ -1252,27 +1252,27 @@ class_name StateGrappling
 extends BaseState
 
 func enter(_prev: GameEnums.CharacterState) -> void:
-    combat_controller.anim_player.play("grapple_initiator")
+	combat_controller.anim_player.play("grapple_initiator")
 
 func handle_input(action: GameEnums.ActionType) -> void:
-    # グラップルボタン入力でdominance変動
-    if action == GameEnums.ActionType.GRAPPLE:
-        var grapple_mgr = get_tree().get_first_node_in_group("grapple_manager")
-        if grapple_mgr:
-            grapple_mgr.register_input(combat_controller.player_id)
+	# グラップルボタン入力でdominance変動
+	if action == GameEnums.ActionType.GRAPPLE:
+		var grapple_mgr = get_tree().get_first_node_in_group("grapple_manager")
+		if grapple_mgr:
+			grapple_mgr.register_input(combat_controller.player_id)
 
 # StateGrappled.gd（受け側）
 class_name StateGrappled
 extends BaseState
 
 func enter(_prev: GameEnums.CharacterState) -> void:
-    combat_controller.anim_player.play("grapple_receiver")
+	combat_controller.anim_player.play("grapple_receiver")
 
 func handle_input(action: GameEnums.ActionType) -> void:
-    if action == GameEnums.ActionType.GRAPPLE:
-        var grapple_mgr = get_tree().get_first_node_in_group("grapple_manager")
-        if grapple_mgr:
-            grapple_mgr.register_input(combat_controller.player_id)
+	if action == GameEnums.ActionType.GRAPPLE:
+		var grapple_mgr = get_tree().get_first_node_in_group("grapple_manager")
+		if grapple_mgr:
+			grapple_mgr.register_input(combat_controller.player_id)
 ```
 
 ---
@@ -1314,135 +1314,135 @@ signal match_ended(winner_id: GameEnums.PlayerID)
 signal ko_triggered(loser: Node)
 
 func _ready() -> void:
-    add_to_group("fight_manager")
-    grapple_manager.grapple_damage_dealt.connect(_on_grapple_damage)
-    grapple_manager.grapple_ended.connect(_on_grapple_ended)
-    
-    # KO検知（各キャラのHealthComponent.permanent_hp_depleted）
-    var p1_health = player1.get_node("HealthComponent")
-    var p2_health = player2.get_node("HealthComponent")
-    p1_health.permanent_hp_depleted.connect(func(): _on_ko(player1, player2))
-    p2_health.permanent_hp_depleted.connect(func(): _on_ko(player2, player1))
-    
-    start_round()
+	add_to_group("fight_manager")
+	grapple_manager.grapple_damage_dealt.connect(_on_grapple_damage)
+	grapple_manager.grapple_ended.connect(_on_grapple_ended)
+	
+	# KO検知（各キャラのHealthComponent.permanent_hp_depleted）
+	var p1_health = player1.get_node("HealthComponent")
+	var p2_health = player2.get_node("HealthComponent")
+	p1_health.permanent_hp_depleted.connect(func(): _on_ko(player1, player2))
+	p2_health.permanent_hp_depleted.connect(func(): _on_ko(player2, player1))
+	
+	start_round()
 
 func _physics_process(delta: float) -> void:
-    if round_state != GameEnums.RoundState.FIGHTING:
-        return
-    round_timer -= delta
-    if round_timer <= 0.0:
-        _on_round_timeout()
+	if round_state != GameEnums.RoundState.FIGHTING:
+		return
+	round_timer -= delta
+	if round_timer <= 0.0:
+		_on_round_timeout()
 
 func start_round() -> void:
-    round_timer = round_time
-    round_state = GameEnums.RoundState.FIGHTING
-    
-    # 両者をリセット
-    _reset_character(player1)
-    _reset_character(player2)
-    
-    # 開始位置をリセット
-    player1.global_position = Vector3(-2.0, 0.0, 0.0)
-    player2.global_position = Vector3(2.0, 0.0, 0.0)
-    player2.look_at(player1.global_position, Vector3.UP)
-    
-    round_started.emit(current_round)
+	round_timer = round_time
+	round_state = GameEnums.RoundState.FIGHTING
+	
+	# 両者をリセット
+	_reset_character(player1)
+	_reset_character(player2)
+	
+	# 開始位置をリセット
+	player1.global_position = Vector3(-2.0, 0.0, 0.0)
+	player2.global_position = Vector3(2.0, 0.0, 0.0)
+	player2.look_at(player1.global_position, Vector3.UP)
+	
+	round_started.emit(current_round)
 
 ## 打撃ヒット処理（CombatControllerから呼ばれる）
 func process_hit(attacker: Node, target: Node, attack: AttackData, result: GameEnums.HitResult) -> void:
-    if round_state != GameEnums.RoundState.FIGHTING:
-        return
-    
-    var attacker_stats = attacker.get_node("HealthComponent").stats
-    var target_stats = target.get_node("HealthComponent").stats
-    var dmg = DamageCalculator.calculate_attack_damage(attack, result, attacker_stats, target_stats)
-    
-    var target_health = target.get_node("HealthComponent")
-    var target_controller = target.get_node("CombatController")
-    
-    if dmg["recoverable"] > 0.0:
-        target_health.take_damage(dmg["recoverable"], GameEnums.DamageLayer.RECOVERABLE)
-    if dmg["permanent"] > 0.0:
-        target_health.take_damage(dmg["permanent"], GameEnums.DamageLayer.PERMANENT)
-    
-    # ヒットスタンをセット
-    if result != GameEnums.HitResult.BLOCKED:
-        target_controller._pending_hit_stun_frames = attack.hit_stun_frames
-        target_controller.transition_to(GameEnums.CharacterState.HIT_STUN)
-    else:
-        # ブロックスタン
-        target_controller._pending_hit_stun_frames = attack.block_stun_frames
-        target_controller.transition_to(GameEnums.CharacterState.HIT_STUN)
+	if round_state != GameEnums.RoundState.FIGHTING:
+		return
+	
+	var attacker_stats = attacker.get_node("HealthComponent").stats
+	var target_stats = target.get_node("HealthComponent").stats
+	var dmg = DamageCalculator.calculate_attack_damage(attack, result, attacker_stats, target_stats)
+	
+	var target_health = target.get_node("HealthComponent")
+	var target_controller = target.get_node("CombatController")
+	
+	if dmg["recoverable"] > 0.0:
+		target_health.take_damage(dmg["recoverable"], GameEnums.DamageLayer.RECOVERABLE)
+	if dmg["permanent"] > 0.0:
+		target_health.take_damage(dmg["permanent"], GameEnums.DamageLayer.PERMANENT)
+	
+	# ヒットスタンをセット
+	if result != GameEnums.HitResult.BLOCKED:
+		target_controller._pending_hit_stun_frames = attack.hit_stun_frames
+		target_controller.transition_to(GameEnums.CharacterState.HIT_STUN)
+	else:
+		# ブロックスタン
+		target_controller._pending_hit_stun_frames = attack.block_stun_frames
+		target_controller.transition_to(GameEnums.CharacterState.HIT_STUN)
 
 ## グラップル開始処理（CombatControllerから呼ばれる）
 func process_grapple_start(initiator_ctrl: Node, target: Node, grapple: GrappleData) -> void:
-    if round_state != GameEnums.RoundState.FIGHTING:
-        return
-    if grapple_manager.is_active:
-        return  # 既にグラップル中なら無視
-    
-    var initiator_char = initiator_ctrl.get_parent()
-    grapple_manager.start_grapple(initiator_char, target, grapple)
-    
-    initiator_ctrl.transition_to(GameEnums.CharacterState.GRAPPLING)
-    target.get_node("CombatController").transition_to(GameEnums.CharacterState.GRAPPLED)
+	if round_state != GameEnums.RoundState.FIGHTING:
+		return
+	if grapple_manager.is_active:
+		return  # 既にグラップル中なら無視
+	
+	var initiator_char = initiator_ctrl.get_parent()
+	grapple_manager.start_grapple(initiator_char, target, grapple)
+	
+	initiator_ctrl.transition_to(GameEnums.CharacterState.GRAPPLING)
+	target.get_node("CombatController").transition_to(GameEnums.CharacterState.GRAPPLED)
 
 func _on_grapple_damage(target: Node, rec_dmg: float, perm_dmg: float) -> void:
-    var target_health = target.get_node("HealthComponent")
-    if rec_dmg > 0.0:
-        target_health.take_damage(rec_dmg, GameEnums.DamageLayer.RECOVERABLE)
-    if perm_dmg > 0.0:
-        target_health.take_damage(perm_dmg, GameEnums.DamageLayer.PERMANENT)
+	var target_health = target.get_node("HealthComponent")
+	if rec_dmg > 0.0:
+		target_health.take_damage(rec_dmg, GameEnums.DamageLayer.RECOVERABLE)
+	if perm_dmg > 0.0:
+		target_health.take_damage(perm_dmg, GameEnums.DamageLayer.PERMANENT)
 
 func _on_grapple_ended(winner: Node, loser: Node) -> void:
-    # 両キャラをIDLEに戻す
-    if player1.get_node("CombatController").get_current_state() == GameEnums.CharacterState.GRAPPLING or \
-       player1.get_node("CombatController").get_current_state() == GameEnums.CharacterState.GRAPPLED:
-        player1.get_node("CombatController").transition_to(GameEnums.CharacterState.IDLE)
-    if player2.get_node("CombatController").get_current_state() == GameEnums.CharacterState.GRAPPLING or \
-       player2.get_node("CombatController").get_current_state() == GameEnums.CharacterState.GRAPPLED:
-        player2.get_node("CombatController").transition_to(GameEnums.CharacterState.IDLE)
+	# 両キャラをIDLEに戻す
+	if player1.get_node("CombatController").get_current_state() == GameEnums.CharacterState.GRAPPLING or \
+	   player1.get_node("CombatController").get_current_state() == GameEnums.CharacterState.GRAPPLED:
+		player1.get_node("CombatController").transition_to(GameEnums.CharacterState.IDLE)
+	if player2.get_node("CombatController").get_current_state() == GameEnums.CharacterState.GRAPPLING or \
+	   player2.get_node("CombatController").get_current_state() == GameEnums.CharacterState.GRAPPLED:
+		player2.get_node("CombatController").transition_to(GameEnums.CharacterState.IDLE)
 
 func _on_ko(loser: Node, winner: Node) -> void:
-    if round_state != GameEnums.RoundState.FIGHTING:
-        return
-    round_state = GameEnums.RoundState.ROUND_END
-    ko_triggered.emit(loser)
-    
-    # 勝敗カウント
-    if winner == player1:
-        p1_wins += 1
-        round_ended.emit(GameEnums.PlayerID.PLAYER_ONE)
-    else:
-        p2_wins += 1
-        round_ended.emit(GameEnums.PlayerID.PLAYER_TWO)
-    
-    # 最大ラウンド到達 or 必要勝利数到達
-    var wins_needed = (max_rounds / 2) + 1
-    if p1_wins >= wins_needed:
-        match_ended.emit(GameEnums.PlayerID.PLAYER_ONE)
-    elif p2_wins >= wins_needed:
-        match_ended.emit(GameEnums.PlayerID.PLAYER_TWO)
-    else:
-        current_round += 1
-        # KO演出終了後に次ラウンド開始（KOManagerが管理）
+	if round_state != GameEnums.RoundState.FIGHTING:
+		return
+	round_state = GameEnums.RoundState.ROUND_END
+	ko_triggered.emit(loser)
+	
+	# 勝敗カウント
+	if winner == player1:
+		p1_wins += 1
+		round_ended.emit(GameEnums.PlayerID.PLAYER_ONE)
+	else:
+		p2_wins += 1
+		round_ended.emit(GameEnums.PlayerID.PLAYER_TWO)
+	
+	# 最大ラウンド到達 or 必要勝利数到達
+	var wins_needed = (max_rounds / 2) + 1
+	if p1_wins >= wins_needed:
+		match_ended.emit(GameEnums.PlayerID.PLAYER_ONE)
+	elif p2_wins >= wins_needed:
+		match_ended.emit(GameEnums.PlayerID.PLAYER_TWO)
+	else:
+		current_round += 1
+		# KO演出終了後に次ラウンド開始（KOManagerが管理）
 
 func _on_round_timeout() -> void:
-    # 時間切れ：回復不可能HP残量で判定
-    round_state = GameEnums.RoundState.ROUND_END
-    var p1_hp = player1.get_node("HealthComponent").current_permanent_hp
-    var p2_hp = player2.get_node("HealthComponent").current_permanent_hp
-    if p1_hp > p2_hp:
-        round_ended.emit(GameEnums.PlayerID.PLAYER_ONE)
-    elif p2_hp > p1_hp:
-        round_ended.emit(GameEnums.PlayerID.PLAYER_TWO)
-    else:
-        round_ended.emit(GameEnums.PlayerID.PLAYER_ONE)  # 同点はPlayer1勝ち（暫定）
+	# 時間切れ：回復不可能HP残量で判定
+	round_state = GameEnums.RoundState.ROUND_END
+	var p1_hp = player1.get_node("HealthComponent").current_permanent_hp
+	var p2_hp = player2.get_node("HealthComponent").current_permanent_hp
+	if p1_hp > p2_hp:
+		round_ended.emit(GameEnums.PlayerID.PLAYER_ONE)
+	elif p2_hp > p1_hp:
+		round_ended.emit(GameEnums.PlayerID.PLAYER_TWO)
+	else:
+		round_ended.emit(GameEnums.PlayerID.PLAYER_ONE)  # 同点はPlayer1勝ち（暫定）
 
 func _reset_character(character: Node) -> void:
-    character.get_node("HealthComponent")._reset()
-    character.get_node("CombatController").transition_to(GameEnums.CharacterState.IDLE)
-    character.get_node("ComboManager")._reset_combo()
+	character.get_node("HealthComponent")._reset()
+	character.get_node("CombatController").transition_to(GameEnums.CharacterState.IDLE)
+	character.get_node("ComboManager")._reset_combo()
 ```
 
 ### 7-B. InputHandler
@@ -1465,44 +1465,44 @@ extends Node
 var _prefix: String = "p1_"
 
 func _ready() -> void:
-    _prefix = "p1_" if player_id == GameEnums.PlayerID.PLAYER_ONE else "p2_"
+	_prefix = "p1_" if player_id == GameEnums.PlayerID.PLAYER_ONE else "p2_"
 
 func _physics_process(_delta: float) -> void:
-    _process_movement()
-    _process_actions()
+	_process_movement()
+	_process_actions()
 
 func _process_actions() -> void:
-    if Input.is_action_just_pressed(_prefix + "punch"):
-        combat_controller.receive_input(GameEnums.ActionType.PUNCH)
-    elif Input.is_action_just_pressed(_prefix + "kick"):
-        combat_controller.receive_input(GameEnums.ActionType.KICK)
-    elif Input.is_action_just_pressed(_prefix + "grapple"):
-        combat_controller.receive_input(GameEnums.ActionType.GRAPPLE)
-    
-    # ガードは押し続けている間有効
-    if Input.is_action_pressed(_prefix + "guard"):
-        combat_controller.receive_input(GameEnums.ActionType.GUARD)
+	if Input.is_action_just_pressed(_prefix + "punch"):
+		combat_controller.receive_input(GameEnums.ActionType.PUNCH)
+	elif Input.is_action_just_pressed(_prefix + "kick"):
+		combat_controller.receive_input(GameEnums.ActionType.KICK)
+	elif Input.is_action_just_pressed(_prefix + "grapple"):
+		combat_controller.receive_input(GameEnums.ActionType.GRAPPLE)
+	
+	# ガードは押し続けている間有効
+	if Input.is_action_pressed(_prefix + "guard"):
+		combat_controller.receive_input(GameEnums.ActionType.GUARD)
 
 func _process_movement() -> void:
-    var state = combat_controller.get_current_state()
-    # 移動可能なステートのみ
-    if state not in [GameEnums.CharacterState.IDLE, GameEnums.CharacterState.WALKING]:
-        return
-    
-    var move_dir = Input.get_vector(
-        _prefix + "move_left", _prefix + "move_right",
-        _prefix + "move_up", _prefix + "move_down"
-    )
-    var character = get_parent() as CharacterBody3D
-    if move_dir.length() > 0.1:
-        # 既存のPlayerController.gd と統合すること
-        # velocity.x = move_dir.x * SPEED
-        # velocity.z = move_dir.y * SPEED
-        if state == GameEnums.CharacterState.IDLE:
-            combat_controller.transition_to(GameEnums.CharacterState.WALKING)
-    else:
-        if state == GameEnums.CharacterState.WALKING:
-            combat_controller.transition_to(GameEnums.CharacterState.IDLE)
+	var state = combat_controller.get_current_state()
+	# 移動可能なステートのみ
+	if state not in [GameEnums.CharacterState.IDLE, GameEnums.CharacterState.WALKING]:
+		return
+	
+	var move_dir = Input.get_vector(
+		_prefix + "move_left", _prefix + "move_right",
+		_prefix + "move_up", _prefix + "move_down"
+	)
+	var character = get_parent() as CharacterBody3D
+	if move_dir.length() > 0.1:
+		# 既存のPlayerController.gd と統合すること
+		# velocity.x = move_dir.x * SPEED
+		# velocity.z = move_dir.y * SPEED
+		if state == GameEnums.CharacterState.IDLE:
+			combat_controller.transition_to(GameEnums.CharacterState.WALKING)
+	else:
+		if state == GameEnums.CharacterState.WALKING:
+			combat_controller.transition_to(GameEnums.CharacterState.IDLE)
 ```
 
 ---
@@ -1533,8 +1533,8 @@ HUD (CanvasLayer)
 │   ├── RoundTimer (Label)
 │   └── RoundCounter (Label)
 └── GrapplePanel (HBoxContainer, 中央下部, 非表示)
-    ├── DominanceBar (TextureProgressBar)  ← グラップル中のみ表示
-    └── DominanceLabel (Label)
+	├── DominanceBar (TextureProgressBar)  ← グラップル中のみ表示
+	└── DominanceLabel (Label)
 ```
 
 ```gdscript
@@ -1553,56 +1553,56 @@ extends CanvasLayer
 @export var fight_manager: FightManager
 
 func _ready() -> void:
-    # TextureProgressBarの設定
-    p1_permanent_bar.min_value = 0
-    p1_permanent_bar.max_value = 100
-    p1_permanent_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
-    
-    p1_recoverable_bar.min_value = 0
-    p1_recoverable_bar.max_value = 100
-    p1_recoverable_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
-    
-    # P2は右→左方向に減る
-    p2_permanent_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
-    p2_recoverable_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
-    
-    dominance_bar.min_value = 0.0
-    dominance_bar.max_value = 1.0
-    dominance_bar.value = 0.5
-    grapple_panel.visible = false
-    
-    _connect_signals()
+	# TextureProgressBarの設定
+	p1_permanent_bar.min_value = 0
+	p1_permanent_bar.max_value = 100
+	p1_permanent_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+	
+	p1_recoverable_bar.min_value = 0
+	p1_recoverable_bar.max_value = 100
+	p1_recoverable_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+	
+	# P2は右→左方向に減る
+	p2_permanent_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
+	p2_recoverable_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
+	
+	dominance_bar.min_value = 0.0
+	dominance_bar.max_value = 1.0
+	dominance_bar.value = 0.5
+	grapple_panel.visible = false
+	
+	_connect_signals()
 
 func _connect_signals() -> void:
-    if fight_manager == null:
-        return
-    
-    var p1_health = fight_manager.player1.get_node("HealthComponent")
-    var p2_health = fight_manager.player2.get_node("HealthComponent")
-    
-    p1_health.permanent_hp_changed.connect(func(val, mx): _update_bar(p1_permanent_bar, val, mx))
-    p1_health.recoverable_hp_changed.connect(func(val, mx): _update_bar(p1_recoverable_bar, val, mx))
-    p2_health.permanent_hp_changed.connect(func(val, mx): _update_bar(p2_permanent_bar, val, mx))
-    p2_health.recoverable_hp_changed.connect(func(val, mx): _update_bar(p2_recoverable_bar, val, mx))
-    
-    fight_manager.round_started.connect(func(rn): round_counter_label.text = "ROUND %d" % rn)
-    
-    var grapple_mgr = fight_manager.get_node("GrappleManager")
-    grapple_mgr.dominance_changed.connect(_on_dominance_changed)
-    grapple_mgr.grapple_ended.connect(func(_w, _l): grapple_panel.visible = false)
+	if fight_manager == null:
+		return
+	
+	var p1_health = fight_manager.player1.get_node("HealthComponent")
+	var p2_health = fight_manager.player2.get_node("HealthComponent")
+	
+	p1_health.permanent_hp_changed.connect(func(val, mx): _update_bar(p1_permanent_bar, val, mx))
+	p1_health.recoverable_hp_changed.connect(func(val, mx): _update_bar(p1_recoverable_bar, val, mx))
+	p2_health.permanent_hp_changed.connect(func(val, mx): _update_bar(p2_permanent_bar, val, mx))
+	p2_health.recoverable_hp_changed.connect(func(val, mx): _update_bar(p2_recoverable_bar, val, mx))
+	
+	fight_manager.round_started.connect(func(rn): round_counter_label.text = "ROUND %d" % rn)
+	
+	var grapple_mgr = fight_manager.get_node("GrappleManager")
+	grapple_mgr.dominance_changed.connect(_on_dominance_changed)
+	grapple_mgr.grapple_ended.connect(func(_w, _l): grapple_panel.visible = false)
 
 func _physics_process(_delta: float) -> void:
-    if fight_manager:
-        var t = fight_manager.round_timer
-        round_timer_label.text = "%02d" % int(ceil(t))
+	if fight_manager:
+		var t = fight_manager.round_timer
+		round_timer_label.text = "%02d" % int(ceil(t))
 
 func _update_bar(bar: TextureProgressBar, value: float, max_value: float) -> void:
-    bar.max_value = max_value
-    bar.value = value
+	bar.max_value = max_value
+	bar.value = value
 
 func _on_dominance_changed(new_dominance: float) -> void:
-    grapple_panel.visible = true
-    dominance_bar.value = new_dominance
+	grapple_panel.visible = true
+	dominance_bar.value = new_dominance
 ```
 
 ---
@@ -1636,43 +1636,43 @@ const NEXT_ROUND_DELAY: float = 3.0    # 次ラウンドまでの待機秒数
 @onready var ko_camera_tween: Tween = null
 
 func _ready() -> void:
-    ko_overlay.visible = false
-    fight_manager.ko_triggered.connect(_on_ko_triggered)
-    fight_manager.round_ended.connect(_on_round_ended)
-    fight_manager.match_ended.connect(_on_match_ended)
+	ko_overlay.visible = false
+	fight_manager.ko_triggered.connect(_on_ko_triggered)
+	fight_manager.round_ended.connect(_on_round_ended)
+	fight_manager.match_ended.connect(_on_match_ended)
 
 func _on_ko_triggered(loser: Node) -> void:
-    # Step 1: ヒットストップ（完全停止）
-    Engine.time_scale = 0.0
-    await get_tree().create_timer(FREEZE_DURATION, true, false, true).timeout
-    
-    # Step 2: スローモーション
-    Engine.time_scale = SLOWMO_TIME_SCALE
-    
-    # カメラをloserに向けるTween（WorldEnvironmentやCameraへのアクセスは既存実装に依存）
-    # SpringArm3DカメラをKOキャラクターにフォーカスするコードをここに追加
-    
-    await get_tree().create_timer(SLOWMO_DURATION, true, false, true).timeout
-    Engine.time_scale = 1.0
-    
-    # Step 3: KOテキスト表示
-    ko_label.text = "K.O."
-    ko_overlay.visible = true
-    # KOラベルのアニメーション（Tweenでスケールアップ）
-    var tween = create_tween()
-    tween.tween_property(ko_label, "scale", Vector2(1.5, 1.5), 0.3).from(Vector2(0.5, 0.5))
-    
-    await get_tree().create_timer(KO_TEXT_DURATION).timeout
-    ko_overlay.visible = false
+	# Step 1: ヒットストップ（完全停止）
+	Engine.time_scale = 0.0
+	await get_tree().create_timer(FREEZE_DURATION, true, false, true).timeout
+	
+	# Step 2: スローモーション
+	Engine.time_scale = SLOWMO_TIME_SCALE
+	
+	# カメラをloserに向けるTween（WorldEnvironmentやCameraへのアクセスは既存実装に依存）
+	# SpringArm3DカメラをKOキャラクターにフォーカスするコードをここに追加
+	
+	await get_tree().create_timer(SLOWMO_DURATION, true, false, true).timeout
+	Engine.time_scale = 1.0
+	
+	# Step 3: KOテキスト表示
+	ko_label.text = "K.O."
+	ko_overlay.visible = true
+	# KOラベルのアニメーション（Tweenでスケールアップ）
+	var tween = create_tween()
+	tween.tween_property(ko_label, "scale", Vector2(1.5, 1.5), 0.3).from(Vector2(0.5, 0.5))
+	
+	await get_tree().create_timer(KO_TEXT_DURATION).timeout
+	ko_overlay.visible = false
 
 func _on_round_ended(winner_id: GameEnums.PlayerID) -> void:
-    await get_tree().create_timer(NEXT_ROUND_DELAY).timeout
-    fight_manager.start_round()
+	await get_tree().create_timer(NEXT_ROUND_DELAY).timeout
+	fight_manager.start_round()
 
 func _on_match_ended(winner_id: GameEnums.PlayerID) -> void:
-    ko_label.text = "PLAYER %d WINS!" % (1 if winner_id == GameEnums.PlayerID.PLAYER_ONE else 2)
-    ko_overlay.visible = true
-    # タイトル画面に戻るボタン等を表示（実装は別途）
+	ko_label.text = "PLAYER %d WINS!" % (1 if winner_id == GameEnums.PlayerID.PLAYER_ONE else 2)
+	ko_overlay.visible = true
+	# タイトル画面に戻るボタン等を表示（実装は別途）
 ```
 
 ---
@@ -1717,8 +1717,8 @@ main.tscn
 │   └── ...（同上）
 │
 └── HUD（hud.tscn、CanvasLayer）
-    └── KO_Overlay（CanvasLayer）
-        └── KO_Label（Label）
+	└── KO_Overlay（CanvasLayer）
+		└── KO_Label（Label）
 ```
 
 ---

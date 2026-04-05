@@ -203,14 +203,31 @@ ROOT → P(punch_light) → PP(punch_heavy) → PPP(kick_heavy×1.3✦) / PPK(ki
 行動不可中の追加ダメージ: take_damage(PERMANENT) × 1.3
 ```
 
-### グラップルシステム (dominance型)
+### グラップルシステム (dominance型・改訂版)
 ```
 GrappleManager (FightManager の子)
-dominance: 0.5スタート → 入力でMINION: +0.08/入力, DECAY: 0.05/sec
-- dominance > 0.75: 毎秒ダメージ (grapple_data の計算式)
-- dominance < 0.25: 受け側が逆転 → grapple_ended
-- タイムアウト: 8秒
+dominance: 0.5スタート → GRAPPLEボタン連打で +0.08/入力（攻め側のみ）
+CPU は入力を行わず、decay のみで抵抗を表現する
+
+【終了条件】
+  dominance = 1.0 → 攻め側勝利: 受け側の回復不可能HPに -20 ダメージして grapple_ended
+  dominance = 0.0 → 受け側勝利（CPU抵抗が上回った）: 攻め側の回復不可能HPに -20 ダメージして grapple_ended
+  ※ タイムアウトなし（dominanceが0か1に達するまで継続）
+
+【decay レート（/sec）: 常に 0.0 方向へ引き戻す。回復可能HP差 diff = 攻め側HP − 受け側HP で速度変化】
+  diff < -30      : 0.25  (受け側が30以上有利 → 速く0へ)
+  -30 ≤ diff < -1 : 0.15  (受け側がやや有利)
+  -1 ≤ diff ≤ 1   : 0.1   (ほぼ互角)
+  1 < diff ≤ 30   : 0.05  (攻め側がやや有利)
+  diff > 30       : 0.03  (攻め側が30以上有利 → ゆっくり0へ)
+
+【グラップル中の追加挙動】
+  - 両者の回復可能HPリジェン停止 (HealthComponent._is_regen_paused = true)
+  - カメラを近距離専用視点にズームイン (SpringArm spring_length 5.0 → 2.0, 0.3秒)
+  - 終了時にリジェン再開・カメラ復元 (0.4秒)
+
 InputHandler の GRAPPLE 入力 → GrappleManager.register_input()
+※ 毎秒ダメージ処理は廃止。GrappleData のダメージ値は未使用。
 ```
 
 ---
@@ -314,6 +331,7 @@ CharacterBody3D
 - `consume_stamina(amount) → bool`
 - `reset()` — ラウンド開始時
 - `is_incapacitated() → bool`
+- `set_regen_paused(paused: bool)` — グラップル中に GrappleManager から呼ぶ。再開時は regen_timer をリセット
 - **シグナル**: `recoverable_hp_changed(val, max)`, `permanent_hp_changed(val, max)`,
   `recoverable_hp_depleted()`, `permanent_hp_depleted()`, `incapacitation_ended()`
 
@@ -326,8 +344,9 @@ CharacterBody3D
 - `start_grapple(initiator, receiver, grapple_data)`
 - `register_input(player_id)` — 各キャラからの入力ボタン押下
 - `is_active: bool`
-- **シグナル**: `grapple_damage_dealt(target, rec, perm)`, `grapple_ended(winner, loser)`,
-  `dominance_changed(val)`
+- **シグナル**: `grapple_ended(winner, loser)`, `dominance_changed(val)`
+- `set_regen_paused(bool)` ← HealthComponent に委譲（内部で呼ぶ）
+- `_adjust_camera(bool)` ← SpringArm3D を scene root から探してズーム操作
 
 ### FightManager
 - `set_fighters(p1, p2)` — キャラ設定後に start_round() を呼ぶ

@@ -10,10 +10,11 @@ extends Node
 @export var stats: CharacterStats
 
 var current_recoverable_hp: float = 0.0
-var current_permanent_hp: float = 0.0
+var current_permanent_hp:   float = 0.0
 
-var _regen_timer: float = 0.0
-var _is_incapacitated: bool = false
+var _regen_timer:      float = 0.0
+var _is_incapacitated: bool  = false
+var _is_regen_paused:  bool  = false  # グラップル中など外部から停止可能
 
 signal recoverable_hp_changed(new_value: float, max_value: float)
 signal permanent_hp_changed(new_value: float, max_value: float)
@@ -40,6 +41,7 @@ func reset() -> void:
 	current_permanent_hp   = stats.max_permanent_hp
 	_regen_timer           = 0.0
 	_is_incapacitated      = false
+	_is_regen_paused       = false
 
 ## ダメージを受ける。DamageLayer で対象HPが変わる。
 func take_damage(amount: float, layer: GameEnums.DamageLayer) -> void:
@@ -79,6 +81,13 @@ func is_incapacitated() -> bool:
 func get_dominance_modifier() -> float:
 	return stats.incapacitated_dominance_penalty if _is_incapacitated else 1.0
 
+## 回復可能HPのリジェンを一時停止 / 再開（グラップル中に GrappleManager から呼ぶ）
+func set_regen_paused(paused: bool) -> void:
+	_is_regen_paused = paused
+	if not paused:
+		# 再開時はタイマーをリセットして delay 後から回復が始まるようにする
+		_regen_timer = 0.0
+
 # ----------------------------------------------------------
 # 内部メソッド
 # ----------------------------------------------------------
@@ -96,15 +105,15 @@ func _on_incapacitation_end() -> void:
 	incapacitation_ended.emit()
 
 func _process_regen(delta: float) -> void:
-	if _is_incapacitated:
+	if _is_incapacitated or _is_regen_paused:
 		return
 	if current_recoverable_hp >= stats.max_recoverable_hp:
 		return
 
 	_regen_timer += delta
 	if _regen_timer >= stats.recoverable_hp_regen_delay:
-		var regen = stats.recoverable_hp_regen_rate * delta
-		var old_hp = current_recoverable_hp
+		var regen  := stats.recoverable_hp_regen_rate * delta
+		var old_hp := current_recoverable_hp
 		current_recoverable_hp = min(stats.max_recoverable_hp, current_recoverable_hp + regen)
 		if current_recoverable_hp != old_hp:
 			recoverable_hp_changed.emit(current_recoverable_hp, stats.max_recoverable_hp)

@@ -6,29 +6,37 @@ extends Node
 #  FightManager の子ノードとして存在。
 #  dominance 型グラップルシステムを管理する。
 #  グループ "grapple_manager" に追加すること。
+#
+#  【終了条件】
+#    dominance = 1.0 → 攻め側勝利: 受け側の回復不可能HPに GRAPPLE_FINISH_DAMAGE
+#    dominance = 0.0 → 受け側勝利: 攻め側の回復不可能HPに GRAPPLE_FINISH_DAMAGE
+#    タイムアウト    → 引き分け（ダメージなし）
+#
+#  【decayレート: /sec, 回復可能HP差による動的変化】
+#    攻め側HP + 30 < 受け側HP : 0.5
+#    攻め側HP < 受け側HP ≤ +30: 0.4
+#    両者ほぼ同等（±1以内）  : 0.3
+#    受け側HP < 攻め側HP ≤ +30: 0.2
+#    受け側HP + 30 < 攻め側HP : 0.1
 # ============================================================
 
-var grapple_initiator: Node = null
-var grapple_receiver:  Node = null
-var active_grapple_data: GrappleData = null
+var grapple_initiator:    Node       = null
+var grapple_receiver:     Node       = null
+var active_grapple_data:  GrappleData = null
 
 # dominance: 0.0〜1.0（1.0に近いほど攻め側有利）
 var dominance: float = 0.5
 
-const DOMINANCE_GAIN_PER_INPUT:    float = 0.08
-const DOMINANCE_DECAY_RATE:        float = 0.05
-const DOMINANCE_DAMAGE_THRESHOLD:  float = 0.75
-const DOMINANCE_REVERSE_THRESHOLD: float = 0.25
-const DAMAGE_INTERVAL:             float = 1.0
-const GRAPPLE_TIMEOUT:             float = 8.0  # 最大継続秒数（無限グラップル防止）
+const DOMINANCE_GAIN_PER_INPUT: float = 0.08
+const GRAPPLE_FINISH_DAMAGE:    float = 20.0   # 勝敗決定時の永続ダメージ
+const GRAPPLE_CAM_DISTANCE:     float = 2.0    # グラップル中の SpringArm 長さ
+const HP_EQUAL_EPSILON:         float = 1.0    # 「HP等しい」とみなす閾値
 
-var _damage_interval_timer: float = 0.0
-var _timeout_timer:         float = 0.0
-var _initiator_input_this_frame: bool = false
-var _receiver_input_this_frame:  bool = false
+var _initiator_input_this_frame: bool  = false
+var _receiver_input_this_frame:  bool  = false
+var _original_spring_length:     float = 5.0   # 復元用
 var is_active: bool = false
 
-signal grapple_damage_dealt(target: Node, rec_dmg: float, perm_dmg: float)
 signal grapple_ended(winner: Node, loser: Node)
 signal dominance_changed(new_dominance: float)
 
@@ -38,15 +46,12 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if not is_active:
 		return
-	_timeout_timer += delta
-	if _timeout_timer >= GRAPPLE_TIMEOUT:
-		_end_grapple(null, null)
-		return
 	_process_dominance(delta)
-	_process_damage(delta)
 	_reset_frame_inputs()
 
-## テキストエフェクト（旧 GrappleSystem._spawn_text_effect の後継）
+# ----------------------------------------------------------
+# テキストエフェクト（旧 GrappleSystem._spawn_text_effect の後継）
+# ----------------------------------------------------------
 func spawn_text_effect(text: String, pos: Vector3, color: Color = Color.WHITE) -> void:
 	var label := Label3D.new()
 	label.text = text
@@ -58,85 +63,120 @@ func spawn_text_effect(text: String, pos: Vector3, color: Color = Color.WHITE) -
 	get_tree().root.add_child(label)
 	label.global_position = pos
 	var tween := create_tween()
-	tween.tween_property(label, "global_position:y", pos.y + 2.0, 1.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "global_position:y", pos.y + 2.0, 1.0) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(label, "modulate:a", 0.0, 1.0)
 	tween.tween_callback(label.queue_free)
 
-## グラップル開始
+# ----------------------------------------------------------
+# グラップル開始
+# ----------------------------------------------------------
 func start_grapple(initiator: Node, receiver: Node, grapple_data: GrappleData) -> void:
-	grapple_initiator    = initiator
-	grapple_receiver     = receiver
-	active_grapple_data  = grapple_data
-	dominance            = 0.5
-	_damage_interval_timer = 0.0
-	_timeout_timer         = 0.0
-	is_active            = true
+	grapple_initiator   = initiator
+	grapple_receiver    = receiver
+	active_grapple_data = grapple_data
+	dominance           = 0.5
+	is_active           = true
 
 	# 受け側を攻め側の正面 1m に位置合わせ
-	var fwd = -initiator.global_transform.basis.z.normalized()
-	receiver.global_position = initiator.global_position + fwd * 1.0
-	receiver.look_at(initiator.global_position, Vector3.UP)
+	# initiator / receiver は Node 型宣言だが実体は CharacterBody3D (Node3D)
+	var i3d := initiator as Node3D
+	var r3d := receiver  as Node3D
+	var fwd := -i3d.global_transform.basis.z.normalized()
+	r3d.global_position = i3d.global_position + fwd * 1.0
+	r3d.look_at(i3d.global_position, Vector3.UP)
 
-## グラップル入力登録（各キャラの InputHandler / CPUController から呼ぶ）
+	# 両者の回復可能HP回復を停止
+	_set_regen_paused(true)
+
+	# カメラをグラップル専用の近距離視点に変更
+	_adjust_camera(true)
+
+# ----------------------------------------------------------
+# グラップル入力登録（各キャラの InputHandler / CPUController から呼ぶ）
+# ----------------------------------------------------------
 func register_input(player_id: GameEnums.PlayerID) -> void:
 	if not is_active:
 		return
 
-	var initiator_health: HealthComponent = grapple_initiator.get_node_or_null("CombatController/HealthComponent")
-	var receiver_health:  HealthComponent = grapple_receiver.get_node_or_null("CombatController/HealthComponent")
+	var initiator_health: HealthComponent = \
+		grapple_initiator.get_node_or_null("CombatController/HealthComponent")
+	var receiver_health: HealthComponent = \
+		grapple_receiver.get_node_or_null("CombatController/HealthComponent")
 
 	if player_id == _get_initiator_player_id():
-		var mod = initiator_health.get_dominance_modifier() if initiator_health else 1.0
+		var mod := initiator_health.get_dominance_modifier() if initiator_health else 1.0
 		dominance = min(1.0, dominance + DOMINANCE_GAIN_PER_INPUT * mod)
 		_initiator_input_this_frame = true
 	else:
-		var mod = receiver_health.get_dominance_modifier() if receiver_health else 1.0
+		var mod := receiver_health.get_dominance_modifier() if receiver_health else 1.0
 		dominance = max(0.0, dominance - DOMINANCE_GAIN_PER_INPUT * mod)
 		_receiver_input_this_frame = true
 
 	dominance_changed.emit(dominance)
 
-func end_grapple_by_timeout() -> void:
-	_end_grapple(null, null)
+	# 勝利条件チェック（入力により端点到達）
+	if dominance >= 1.0:
+		# 攻め側勝利 → 受け側に永続ダメージ
+		_resolve_grapple(grapple_initiator, grapple_receiver)
+	elif dominance <= 0.0:
+		# 受け側勝利（逆転）→ 攻め側に永続ダメージ
+		_resolve_grapple(grapple_receiver, grapple_initiator)
 
 # ----------------------------------------------------------
 # 内部処理
 # ----------------------------------------------------------
 
 func _process_dominance(delta: float) -> void:
+	var rate := _get_decay_rate()
+	# 入力がない側は dominance が 0.0 に向かって減衰（CPU の抵抗をdecayで表現）
 	if not _initiator_input_this_frame:
-		dominance = move_toward(dominance, 0.5, DOMINANCE_DECAY_RATE * delta)
+		dominance = move_toward(dominance, 0.0, rate * delta)
 	if not _receiver_input_this_frame:
-		dominance = move_toward(dominance, 0.5, DOMINANCE_DECAY_RATE * delta)
+		dominance = move_toward(dominance, 0.0, rate * delta)
 	dominance_changed.emit(dominance)
 
-	if dominance <= DOMINANCE_REVERSE_THRESHOLD:
-		_on_receiver_reversal()
+	# 勝利条件チェック（decay により端点到達した場合）
+	if dominance >= 1.0:
+		_resolve_grapple(grapple_initiator, grapple_receiver)
+	elif dominance <= 0.0:
+		_resolve_grapple(grapple_receiver, grapple_initiator)
 
-func _process_damage(delta: float) -> void:
-	_damage_interval_timer += delta
-	if _damage_interval_timer < DAMAGE_INTERVAL:
-		return
-	_damage_interval_timer = 0.0
+## 回復可能HP差に基づいた動的 decay レートを返す（/sec）
+## diff = 攻め側HP − 受け側HP
+func _get_decay_rate() -> float:
+	var i_hp := _get_recoverable_hp(grapple_initiator)
+	var r_hp  := _get_recoverable_hp(grapple_receiver)
+	var diff  := i_hp - r_hp
 
-	if dominance < DOMINANCE_DAMAGE_THRESHOLD:
-		return
+	if diff < -30.0:
+		return 0.25  # 受け側が30以上有利 → 速く中立へ戻る
+	elif diff < -HP_EQUAL_EPSILON:
+		return 0.15  # 受け側がやや有利
+	elif diff <= HP_EQUAL_EPSILON:
+		return 0.1   # ほぼ互角
+	elif diff <= 30.0:
+		return 0.05  # 攻め側がやや有利
+	else:
+		return 0.03  # 攻め側が30以上有利 → ゆっくり中立へ戻る
 
-	var initiator_stats: CharacterStats = _get_stats(grapple_initiator)
-	var receiver_stats:  CharacterStats = _get_stats(grapple_receiver)
-	if initiator_stats == null or receiver_stats == null:
-		return
-
-	var dmg = DamageCalculator.calculate_grapple_damage(
-		active_grapple_data, dominance, initiator_stats, receiver_stats
-	)
-	grapple_damage_dealt.emit(grapple_receiver, dmg["recoverable"], dmg["permanent"])
-
-func _on_receiver_reversal() -> void:
-	_end_grapple(grapple_receiver, grapple_initiator)
+## 勝者/敗者を確定し永続ダメージを与えてグラップルを終了
+func _resolve_grapple(winner: Node, loser: Node) -> void:
+	var loser_health: HealthComponent = \
+		loser.get_node_or_null("CombatController/HealthComponent")
+	if loser_health:
+		loser_health.take_damage(GRAPPLE_FINISH_DAMAGE, GameEnums.DamageLayer.PERMANENT)
+	_end_grapple(winner, loser)
 
 func _end_grapple(winner: Node, loser: Node) -> void:
 	is_active = false
+
+	# 両者の回復可能HP回復を再開
+	_set_regen_paused(false)
+
+	# カメラを通常視点に戻す
+	_adjust_camera(false)
+
 	grapple_ended.emit(winner, loser)
 	grapple_initiator   = null
 	grapple_receiver    = null
@@ -146,12 +186,50 @@ func _reset_frame_inputs() -> void:
 	_initiator_input_this_frame = false
 	_receiver_input_this_frame  = false
 
+# ----------------------------------------------------------
+# HP 回復停止 / 再開
+# ----------------------------------------------------------
+func _set_regen_paused(paused: bool) -> void:
+	for character in [grapple_initiator, grapple_receiver]:
+		if character == null:
+			continue
+		var hc: HealthComponent = character.get_node_or_null("CombatController/HealthComponent")
+		if hc:
+			hc.set_regen_paused(paused)
+
+# ----------------------------------------------------------
+# カメラ操作（グラップル専用近距離視点）
+# ----------------------------------------------------------
+func _adjust_camera(enable: bool) -> void:
+	var spring_arm := _find_spring_arm()
+	if spring_arm == null:
+		return
+	if enable:
+		_original_spring_length = spring_arm.spring_length
+		var tw := create_tween()
+		tw.tween_property(spring_arm, "spring_length", GRAPPLE_CAM_DISTANCE, 0.3) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	else:
+		var tw := create_tween()
+		tw.tween_property(spring_arm, "spring_length", _original_spring_length, 0.4) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+
+func _find_spring_arm() -> SpringArm3D:
+	# PlayerController._defer_detach_camera() によりシーンルート直下に移動済み
+	for node in get_tree().root.get_children():
+		if node is SpringArm3D:
+			return node as SpringArm3D
+	return null
+
+# ----------------------------------------------------------
+# ユーティリティ
+# ----------------------------------------------------------
 func _get_initiator_player_id() -> GameEnums.PlayerID:
 	var ctrl = grapple_initiator.get_node_or_null("CombatController")
 	if ctrl:
 		return ctrl.player_id
 	return GameEnums.PlayerID.PLAYER_ONE
 
-func _get_stats(character: Node) -> CharacterStats:
+func _get_recoverable_hp(character: Node) -> float:
 	var hc: HealthComponent = character.get_node_or_null("CombatController/HealthComponent")
-	return hc.stats if hc else null
+	return hc.current_recoverable_hp if hc else 0.0

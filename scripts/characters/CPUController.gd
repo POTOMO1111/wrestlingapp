@@ -85,10 +85,12 @@ func _ai_think(delta: float) -> void:
 	_heavy_cd   = max(0.0, _heavy_cd   - delta)
 	_grapple_cd = max(0.0, _grapple_cd - delta)
 
-	# グラップルロック中の専用処理
-	if current_state == State.GRAPPLE_LOCK:
-		_handle_grapple_ai()
-		return
+	# グラップル中の専用処理（新システム）
+	if _combat_controller:
+		var cc_state = _combat_controller.get_current_state()
+		if cc_state == GameEnums.CharacterState.GRAPPLING or cc_state == GameEnums.CharacterState.GRAPPLED:
+			_handle_grapple_ai()
+			return
 
 	# 攻撃・被弾中は動けない（踏み込み減衰だけ処理）
 	if current_state in [State.ATTACK_LIGHT, State.ATTACK_HEAVY, State.GRAPPLE, State.HIT, State.DOWN]:
@@ -283,8 +285,9 @@ func _do_block_behavior(delta: float) -> void:
 # グラップルロック中のAI入力
 # ----------------------------------------------------------
 func _handle_grapple_ai() -> void:
-	# 新システムではGRAPPLINGステート中はGrappleManagerが主導するためAI介入不要
-	pass
+	velocity.x = 0
+	velocity.z = 0
+	# CPU の抵抗は decay レートで表現するため、入力は行わない
 
 # ----------------------------------------------------------
 # 被ダメージ（ブロック反応）

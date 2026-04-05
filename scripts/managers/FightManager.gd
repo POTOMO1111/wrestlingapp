@@ -31,7 +31,6 @@ signal timer_updated(time_remaining: float)
 
 func _ready() -> void:
 	add_to_group("fight_manager")
-	grapple_manager.grapple_damage_dealt.connect(_on_grapple_damage)
 	grapple_manager.grapple_ended.connect(_on_grapple_ended)
 
 func _physics_process(delta: float) -> void:
@@ -142,15 +141,6 @@ func process_grapple_start(initiator_ctrl: CombatController, target: Node, grapp
 # ----------------------------------------------------------
 # シグナルハンドラ
 # ----------------------------------------------------------
-
-func _on_grapple_damage(target: Node, rec_dmg: float, perm_dmg: float) -> void:
-	var target_health: HealthComponent = target.get_node_or_null("CombatController/HealthComponent")
-	if target_health == null:
-		return
-	if rec_dmg > 0.0:
-		target_health.take_damage(rec_dmg, GameEnums.DamageLayer.RECOVERABLE)
-	if perm_dmg > 0.0:
-		target_health.take_damage(perm_dmg, GameEnums.DamageLayer.PERMANENT)
 
 func _on_grapple_ended(_winner: Node, _loser: Node) -> void:
 	for p in [player1, player2]:
