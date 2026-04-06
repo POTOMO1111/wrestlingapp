@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DifficultyProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/DifficultyProfile.gd" id="1_diffprofile"]
+
+[resource]
+script = ExtResource("1_diffprofile")
+reaction_delay_min = 0.4
+reaction_delay_max = 0.5
+counter_probability = 0.15
+grapple_counter_probability = 0.1
+combo_execution_rate = 0.4
+optimal_move_selection = 0.3
+think_interval_min = 0.6
+think_interval_max = 1.0
+enables_body_part_targeting = false
+enables_pattern_adaptation = false
+input_read_probability = 0.0
+grapple_mash_rate = 0.1
+grapple_initiate_accuracy = 0.3

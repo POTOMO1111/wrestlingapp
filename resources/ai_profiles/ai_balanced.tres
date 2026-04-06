@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AIProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/AIProfile.gd" id="1_aiprofile"]
+
+[resource]
+script = ExtResource("1_aiprofile")
+aggression = 0.5
+grapple_preference = 0.5
+risk_taking = 0.4
+showmanship = 0.3
+discretion = 0.5
+weights_early = {"circle": 15, "grapple": 10, "guard": 5, "kick_heavy": 5, "kick_light": 25, "punch_heavy": 5, "punch_light": 30, "stall": 5}
+weights_mid = {"circle": 5, "grapple": 20, "guard": 5, "kick_heavy": 15, "kick_light": 15, "punch_heavy": 15, "punch_light": 20, "stall": 5}
+weights_late = {"circle": 5, "grapple": 25, "guard": 5, "kick_heavy": 20, "kick_light": 10, "punch_heavy": 20, "punch_light": 10, "stall": 5}
+weights_critical = {"circle": 5, "grapple": 30, "guard": 0, "kick_heavy": 25, "kick_light": 5, "punch_heavy": 25, "punch_light": 5, "stall": 5}
+preferred_combo_routes = ["PPK", "KKP"]
+combo_attempt_rate = 0.7
+signature_pattern = "strike_strike_grapple"
+pattern_frequency = 0.4

@@ -414,6 +414,130 @@ calculate_grapple_damage(grapple, dominance, atk_stats, def_stats) → {recovera
 
 ---
 
+## CPU AI システム（実装計画）
+
+### 設計原則
+- **性格（AIProfile）が行動傾向を駆動、難易度（DifficultyProfile）が実行精度を駆動** — 独立した2つのResource
+- **ダメージ段階別技エスカレーション** — 相手の被ダメ割合に応じて重みテーブルを補間
+- **既存インターフェース活用** — `CombatController.receive_input()` 経由のみ
+
+### 新規ファイル構成
+```
+scripts/
+├── ai/
+│   ├── AIBrain.gd              ← AI意思決定中枢（CPUControllerの子として動的生成）
+│   ├── AIStateBase.gd          ← AI戦略ステート基底
+│   ├── ai_states/
+│   │   ├── AIStateAggressive.gd   ← モメンタム優位時
+│   │   ├── AIStateDefensive.gd    ← 自身体力低時
+│   │   ├── AIStateOpportunistic.gd ← 初期デフォルト
+│   │   └── AIStateRecovery.gd     ← INCAPACITATED復帰後
+│   ├── MoveSelector.gd         ← ユーティリティスコア＋重み付きランダム選択
+│   └── SpatialAwareness.gd     ← 距離・リングゾーン毎フレーム更新
+└── data/
+    ├── AIProfile.gd            ← レスラー性格Resource
+    └── DifficultyProfile.gd    ← 難易度パラメータResource
+
+resources/
+├── ai_profiles/
+│   ├── ai_balanced.tres / ai_striker.tres / ai_grappler.tres
+└── difficulty/
+    ├── difficulty_easy/normal/hard/expert/legend.tres
+```
+
+### AIProfile 主要パラメータ
+```
+aggression, grapple_preference, risk_taking, showmanship, discretion  (0.0〜1.0)
+weights_early/mid/late/critical: Dictionary {"punch_light":int, "punch_heavy":int,
+    "kick_light":int, "kick_heavy":int, "grapple":int, "guard":int, "circle":int, "stall":int}
+preferred_combo_routes: ["PPK","KKP"] など
+combo_attempt_rate, signature_pattern, pattern_frequency
+```
+
+### DifficultyProfile 主要パラメータ
+```
+reaction_delay_min/max (sec)     easy:0.4-0.5 〜 legend:0.07-0.13
+counter_probability              easy:0.15 〜 legend:0.80
+grapple_counter_probability      easy:0.10 〜 legend:0.70
+combo_execution_rate             easy:0.40 〜 legend:0.97
+optimal_move_selection           easy:0.30 〜 legend:0.90
+think_interval_min/max (sec)     easy:0.6-1.0 〜 legend:0.2-0.4
+enables_body_part_targeting      Hard以上: true
+enables_pattern_adaptation       Expert以上: true
+input_read_probability           Expert:0.15 / Legend:0.30
+grapple_mash_rate                easy:0.10 〜 legend:0.90
+```
+
+### AIBrain フロー（_physics_process）
+```
+1. KO/KNOCKDOWN/GETTING_UP/INCAPACITATED → 何もしない
+2. GRAPPLING/GRAPPLED → _handle_grapple_mashing(delta)
+   └ GRAPPLE_MASH_INTERVAL(0.1sec)ごとにgrapple_mash_rate確率でGrappleManager.register_input()
+3. pending_reaction待機中 → reaction_delay後に実行（ガード等）
+4. think_timerがthink_intervalを超えたら _think_cycle()
+   ├ _update_move_selector_context()  ← HP割合・相手ステート・dominance更新
+   ├ _update_strategy()               ← 戦略ステートマシン遷移チェック
+   ├ コンボウィンドウ中ならdecide_combo_continuation()
+   └ 通常: MoveSelector.select_action() → _execute_action()
+```
+
+### MoveSelector 技選択ロジック
+```
+1. 相手被ダメ割合でweights_early/mid/late/criticalを補間
+2. _apply_context_modifiers(): 距離・リング位置・相手ステート・自HP・dominanceで重み補正
+3. _apply_signature_pattern(): 性格パターン（strike_strike_grapple等）補正
+4. optimal_move_selection確率で最高重み選択、残りは重み付きランダム
+```
+
+### 戦略ステート遷移
+```
+opportunistic (初期) → aggressive  (相手被ダメ>60%)
+                     → defensive   (自回復可能HP<25%)
+aggressive          → defensive   (自回復可能HP<25%)
+                     → opportunistic (相手ATTACKING)
+defensive           → opportunistic (自回復可能HP>50%)
+                     → aggressive  (相手KNOCKDOWN/INCAPACITATED)
+recovery            → opportunistic (回復可能HP>40%, 最低3sec経過)
+                     → defensive   (回復可能HP>25%, 最低3sec経過)
+```
+
+### CPUController 書き換え内容
+```
+- _ready(): AIBrain を動的生成・シグナル接続
+- initialize_ai(opponent, own_combat_ctrl, opp_combat_ctrl): main.gd から呼ぶ
+- _physics_process(): AI移動velocity適用 + move_and_slide()
+- _on_action_decided(key): CombatController.receive_input() へ変換して送信
+- _on_movement_decided(dir, run): velocity制御
+```
+
+### main.gd への追加
+```gdscript
+# _attach_combat_system() 末尾に追加
+if player2 is CPUController:
+    player2.initialize_ai(player1,
+        player2.get_node("CombatController"),
+        player1.get_node("CombatController"))
+```
+
+### 実装フェーズ順序
+```
+Phase 1: AIProfile.gd, DifficultyProfile.gd, .tres×8
+Phase 2: SpatialAwareness.gd
+Phase 3: MoveSelector.gd
+Phase 4: AIStateBase.gd + 4戦略ステート
+Phase 5: AIBrain.gd
+Phase 6: CPUController.gd 全面書き換え
+Phase 7: main.gd に initialize_ai() 呼び出し追加
+Phase 8: 難易度バランス調整（.tres パラメータのみ変更）
+```
+
+### 実装上の注意
+- `receive_input()` は PUNCH/KICK のみ（軽/重の区別はComboManagerが解決）
+- AIBrainは `grapple_mash_rate` が0なら完全にdecayのみで抵抗（現行動作と互換）
+- GrappleManager.register_input() の引数は `owner_body.player_id`
+
+---
+
 ## 未実装・既知課題
 
 | 項目 | 状態 | 場所 |
@@ -425,6 +549,7 @@ calculate_grapple_damage(grapple, dominance, atk_stats, def_stats) → {recovera
 | character_base.tscn / cpu_opponent.tscn | 空ファイル | scenes/characters/ |
 | ring_stage.tscn | 内容不明 | scenes/game/ |
 | StateWalking.handle_input | 未実装の可能性 | scripts/states/StateWalking.gd |
+| CPU AIシステム | 計画策定済み、未実装 | scripts/ai/ (新規) |
 
 ---
 

@@ -17,6 +17,10 @@ var round_wins      : Dictionary = { 1: 0, 2: 0 }
 var p1_character_id : String = "Player"
 var p2_character_id : String = "Dummy"
 
+# CPU AI 設定（キャラセレ画面でセットされる）
+var cpu_ai_profile : String = "balanced"   # "balanced" / "striker" / "grappler"
+var cpu_difficulty : String = "normal"     # "easy" / "normal" / "hard" / "expert" / "legend"
+
 const CONFIG_PATH = "user://settings.cfg"
 
 ## デバッグオーバーレイ表示フラグ

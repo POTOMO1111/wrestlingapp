@@ -51,6 +51,29 @@ func _spawn_characters() -> void:
 	_attach_combat_system(p1, GameEnums.PlayerID.PLAYER_ONE, "balanced")
 	_attach_combat_system(p2, GameEnums.PlayerID.PLAYER_TWO, "balanced")
 
+	# CPU AI の初期化（p2 が CPUController の場合）
+	if p2 is CPUController:
+		# キャラセレで選択したプロファイル・難易度を反映
+		var profile_path := "res://resources/ai_profiles/ai_%s.tres" % GameManager.cpu_ai_profile
+		var diff_path    := "res://resources/difficulty/difficulty_%s.tres" % GameManager.cpu_difficulty
+		var profile_res  := load(profile_path)
+		var diff_res     := load(diff_path)
+		if profile_res:
+			p2.ai_profile_resource = profile_res
+		else:
+			push_warning("main.gd: AI プロファイルが見つかりません: " + profile_path)
+		if diff_res:
+			p2.difficulty_resource = diff_res
+		else:
+			push_warning("main.gd: 難易度プロファイルが見つかりません: " + diff_path)
+
+		var p1_combat: Node = p1.get_node_or_null("CombatController")
+		var p2_combat: Node = p2.get_node_or_null("CombatController")
+		if p1_combat and p2_combat:
+			p2.initialize_ai(p1, p2_combat, p1_combat)
+		else:
+			push_error("main.gd: CombatController が見つからず CPU AI を初期化できませんでした")
+
 	# FightManager にキャラクターを登録
 	fight_manager.set_fighters(p1, p2)
 

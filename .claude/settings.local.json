@@ -17,7 +17,8 @@
       "Bash(grep -n \"play_anim\" scripts/states/*.gd)",
       "Bash(done)",
       "Bash(grep -n \"node name=\" C:/Users/tomo-/GoDot4_projects/wrestling/scenes/game/*.tscn)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(ls \"C:\\\\Users\\\\tomo-\\\\GoDot4_projects\\\\wrestling\\\\scripts\\\\data\"\" && ls \"C:Userstomo-GoDot4_projectswrestlingresources\"\")"
     ]
   }
 }
