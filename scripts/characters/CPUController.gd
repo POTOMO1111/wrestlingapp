@@ -17,6 +17,12 @@ class_name CPUController
 @export var ai_profile_resource: AIProfile
 @export var difficulty_resource: DifficultyProfile
 
+# --- CPU 移動速度（継承した walk_speed より速く設定） ---
+@export var cpu_walk_speed:    float = 3.5
+@export var cpu_step_duration: float = 0.15   # ステップ持続時間(秒)
+@export var cpu_step_cooldown: float = 0.8    # ステップクールダウン(秒)
+@export var cpu_step_chance:   float = 0.30   # APPROACH 中の1秒あたり発動確率
+
 var ai_brain: AIBrain
 
 # --- AIPhase ---
@@ -30,6 +36,13 @@ var _reposition_dir: Vector3 = Vector3.ZERO  # REPOSITION中の後退方向
 
 # --- 回り込み方向 ---
 var _circle_dir: float = 1.0
+
+# --- CPU ステップ ---
+var _cpu_step_timer: float   = 0.0          # ステップ残り時間
+var _cpu_step_cd:    float   = 0.0          # クールダウン残り
+var _cpu_step_dir:   Vector3 = Vector3.ZERO # ステップ移動方向
+
+var _wait_timer:     float   = 0.0          # WAIT フェーズのタイムアウト計測
 
 # ----------------------------------------------------------
 # 初期化
@@ -115,6 +128,19 @@ func _update_ai_phase(delta: float) -> void:
 		_last_cc_state = cc_state
 		return
 
+	# --- CPU ステップクールダウン更新 ---
+	if _cpu_step_cd > 0.0:
+		_cpu_step_cd -= delta
+
+	# ステップ実行中フラグを計算（early return しない — _last_cc_state を必ず末尾で更新するため）
+	var is_stepping_now: bool = false
+	if _cpu_step_timer > 0.0:
+		_cpu_step_timer -= delta
+		if _cpu_step_timer > 0.0 and not _is_combat_busy(cc_state):
+			is_stepping_now = true
+		else:
+			_cpu_step_timer = 0.0  # 終了 or キャンセル
+
 	# 被弾したら即 REPOSITION へ割り込み
 	if cc_state == GameEnums.CharacterState.HIT_STUN and \
 	   _last_cc_state != GameEnums.CharacterState.HIT_STUN:
@@ -130,6 +156,13 @@ func _update_ai_phase(delta: float) -> void:
 		AIPhase.REPOSITION:
 			_phase_reposition(delta)
 
+	# ステップ中は速度を上書き（フェーズ移動より優先）
+	if is_stepping_now:
+		var step_speed: float = cpu_walk_speed * 3.5
+		velocity.x = _cpu_step_dir.x * step_speed
+		velocity.z = _cpu_step_dir.z * step_speed
+
+	# _last_cc_state は常にここで更新（ステップ中の early return を廃止した理由）
 	_last_cc_state = cc_state
 
 # ----------------------------------------------------------
@@ -146,13 +179,17 @@ func _phase_approach(delta: float, cc_state: GameEnums.CharacterState, spatial: 
 		_ai_phase = AIPhase.ENGAGE
 		return
 
-	# 相手方向へ歩く
+	# 相手方向へ歩く（確率で前方ステップによる接近）
 	if spatial:
-		_move_toward(spatial.direction_to_opponent, false, delta)
+		if randf() < cpu_step_chance * delta:
+			if _cpu_trigger_step(spatial.direction_to_opponent):
+				return
+		_move_toward(spatial.direction_to_opponent, delta)
 
 func _phase_engage(cc_state: GameEnums.CharacterState, spatial: SpatialAwareness) -> void:
 	# 戦闘アクション中なら WAIT へ
 	if _is_combat_busy(cc_state):
+		_wait_timer = 0.0
 		_ai_phase = AIPhase.WAIT
 		return
 
@@ -161,17 +198,29 @@ func _phase_engage(cc_state: GameEnums.CharacterState, spatial: SpatialAwareness
 		_ai_phase = AIPhase.APPROACH
 		return
 
+	# 30% の確率で攻撃前に横ステップ回避
+	if spatial and randf() < 0.30:
+		var side: Vector3 = spatial.direction_to_opponent.cross(Vector3.UP).normalized() * _circle_dir
+		if _cpu_trigger_step(side):
+			return  # ステップ中は攻撃を保留（ENGAGE のまま待機）
+
 	# 攻撃を選択して実行
 	var action_key := ai_brain.request_attack()
 	_execute_action_key(action_key, spatial)
+	_wait_timer = 0.0
 	_ai_phase = AIPhase.WAIT
 
 func _phase_wait(delta: float, cc_state: GameEnums.CharacterState, spatial: SpatialAwareness) -> void:
 	_stop_movement(delta)
+	_wait_timer += delta
 
-	# IDLE に戻ったら次フェーズへ
-	if cc_state == GameEnums.CharacterState.IDLE and \
-	   _last_cc_state != GameEnums.CharacterState.IDLE:
+	# IDLE に戻った瞬間、またはタイムアウト(2秒)で次フェーズへ
+	var idle_returned: bool = cc_state == GameEnums.CharacterState.IDLE and \
+		_last_cc_state != GameEnums.CharacterState.IDLE
+	var timed_out: bool = _wait_timer > 2.0 and cc_state == GameEnums.CharacterState.IDLE
+
+	if idle_returned or timed_out:
+		_wait_timer = 0.0
 		if spatial and spatial.is_opponent_in_strike_range:
 			_ai_phase = AIPhase.ENGAGE
 		else:
@@ -188,9 +237,11 @@ func _phase_reposition(delta: float) -> void:
 		_stop_movement(delta)
 		return
 
-	# 後退方向へ移動
-	velocity.x = _reposition_dir.x * walk_speed
-	velocity.z = _reposition_dir.z * walk_speed
+	# 後退ステップを試みる、クールダウン中は通常歩行
+	if _cpu_trigger_step(_reposition_dir):
+		return
+	velocity.x = _reposition_dir.x * cpu_walk_speed
+	velocity.z = _reposition_dir.z * cpu_walk_speed
 
 # ----------------------------------------------------------
 # 行動実行
@@ -237,18 +288,17 @@ func _on_action_decided(action_key: String) -> void:
 # 移動ヘルパー
 # ----------------------------------------------------------
 
-func _move_toward(direction: Vector3, run: bool, delta: float) -> void:
+func _move_toward(direction: Vector3, delta: float) -> void:
 	if direction.length_squared() < 0.01:
 		_stop_movement(delta)
 		return
 
-	var speed := run_speed if run else walk_speed
-	velocity.x = direction.x * speed
-	velocity.z = direction.z * speed
+	velocity.x = direction.x * cpu_walk_speed
+	velocity.z = direction.z * cpu_walk_speed
 
 	# 向きは _face_opponent() が毎フレーム制御するため look_at() は不要
 
-	_change_state(State.RUN if run else State.WALK)
+	_change_state(State.WALK)
 
 func _stop_movement(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, walk_speed * 2.0 * delta)
@@ -283,6 +333,17 @@ func _enter_reposition(spatial: SpatialAwareness) -> void:
 # ----------------------------------------------------------
 # ユーティリティ
 # ----------------------------------------------------------
+
+# CPU ステップ発動（クールダウン中・方向なし・ステップ中なら false）
+func _cpu_trigger_step(direction: Vector3) -> bool:
+	if _cpu_step_cd > 0.0 or _cpu_step_timer > 0.0:
+		return false
+	if direction.length_squared() < 0.01:
+		return false
+	_cpu_step_dir   = direction.normalized()
+	_cpu_step_timer = cpu_step_duration
+	_cpu_step_cd    = cpu_step_cooldown
+	return true
 
 func _is_combat_busy(cc_state: GameEnums.CharacterState) -> bool:
 	return cc_state in [

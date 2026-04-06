@@ -46,6 +46,10 @@ func _input(event: InputEvent) -> void:
 		_send(GameEnums.ActionType.GUARD)
 
 func _send(action: GameEnums.ActionType) -> void:
+	# ステップ中は戦闘入力を無効化
+	var parent = get_parent()
+	if parent and parent.has_method("is_stepping") and parent.is_stepping():
+		return
 	if GameManager.debug_mode:
 		print("[InputHandler:%s] → %s" % [get_parent().name, GameEnums.ActionType.keys()[action]])
 	input_received.emit(action)

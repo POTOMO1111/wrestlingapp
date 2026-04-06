@@ -1,10 +1,9 @@
 extends "res://scripts/characters/CharacterBase.gd"
 
 # ============================================================
-#  PlayerController.gd  (修正版)
-#  - WASD: 移動
-#  - ←→キー: カメラ左右回転
-#  - Shift: 走る
+#  PlayerController.gd
+#  - WASD: 移動（常に相手方向基準）
+#  - Shift: ステップ回避（一瞬だけ高速移動、前半無敵）
 #  - Space: ジャンプ
 #  - J/K/L: 弱攻撃/強攻撃/掴み
 #  - I: ブロック
@@ -13,10 +12,18 @@ extends "res://scripts/characters/CharacterBase.gd"
 # ----------------------------------------------------------
 # エクスポート変数（インスペクターから調整可能）
 # ----------------------------------------------------------
-@export var walk_speed    : float = 4.0
-@export var run_speed     : float = 8.0
-@export var jump_velocity : float = 6.0
+@export var walk_speed    : float = 2.0
 @export var gravity_scale : float = 2.0
+
+# カメラ設定
+@export var camera_distance    : float = 1.5   # SpringArm 長さ(m)
+@export var camera_side_offset : float = 0.7   # 右オフセット(m): 正値でプレイヤーが画面左寄りに
+
+# ステップ設定
+@export var step_distance     : float = 1.2   # 移動距離(m)≒キャラ1体分
+@export var step_duration     : float = 0.15  # 所要時間(秒)
+@export var step_cooldown     : float = 0.4   # 連続発動クールダウン(秒)
+@export var step_stamina_cost : float = 8.0   # 発動ごとの回復可能HP消費
 
 @export var is_dummy : bool = false
 
@@ -25,11 +32,16 @@ extends "res://scripts/characters/CharacterBase.gd"
 # ----------------------------------------------------------
 var gravity : float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
-enum State { IDLE, WALK, RUN, JUMP, FALL, ATTACK_LIGHT, ATTACK_HEAVY, GRAPPLE, BLOCK, HIT, DOWN, GRAPPLE_LOCK }
+enum State { IDLE, WALK, RUN, JUMP, FALL, ATTACK_LIGHT, ATTACK_HEAVY, GRAPPLE, BLOCK, HIT, DOWN, GRAPPLE_LOCK, STEP }
 var current_state : State = State.IDLE
 
 var _attack_pending : bool = false
 var _state_timer : float = 0.0
+
+# ステップ管理
+var _step_timer         : float   = 0.0          # 残りステップ時間
+var _step_cooldown_timer: float   = 0.0          # クールダウン残り
+var _step_direction     : Vector3 = Vector3.ZERO # ステップ方向（ワールド座標）
 
 # 相手キャラへの参照（常時相手方向を向く制御に使用）。main.gd で代入。
 var opponent: CharacterBody3D = null
@@ -93,6 +105,7 @@ func _defer_detach_camera() -> void:
 	remove_child(spring_arm)
 	get_tree().current_scene.add_child(spring_arm)
 	spring_arm.add_excluded_object(self.get_rid())
+	spring_arm.spring_length = camera_distance
 
 func _exit_tree() -> void:
 	# 孤児になったカメラノードのお掃除
@@ -153,7 +166,11 @@ func _update_spring_arm_position() -> void:
 	var q_pitch = Quaternion(Vector3.RIGHT, _spring_arm_pitch)
 	var new_basis = Basis(q_yaw * q_pitch)
 
-	spring_arm.global_transform = Transform3D(new_basis, global_position + Vector3(0, 1.0, 0))
+	# -basis.x = スクリーン右方向。pivot を右にずらすとプレイヤーが画面左寄りになり
+	# 中央〜右に相手キャラが見えるようになる
+	var pivot := global_position + Vector3(0, 1.2, 0) \
+		+ (-global_transform.basis.x) * camera_side_offset
+	spring_arm.global_transform = Transform3D(new_basis, pivot)
 
 # ----------------------------------------------------------
 # 移動処理（WASD）
@@ -163,25 +180,42 @@ func _handle_movement(delta: float) -> void:
 		_apply_gravity(delta)
 		return
 
-	# グラップル中は移動禁止（入力自体は受け付け、移動のみ無効化）
+	# 戦闘アクション中は移動禁止（グラップル・攻撃）
 	var cc := get_node_or_null("CombatController")
 	if cc and cc.has_method("get_current_state"):
 		var cc_state: GameEnums.CharacterState = cc.get_current_state()
-		if cc_state in [GameEnums.CharacterState.GRAPPLING, GameEnums.CharacterState.GRAPPLED]:
+		if cc_state in [
+			GameEnums.CharacterState.GRAPPLING,
+			GameEnums.CharacterState.GRAPPLED,
+			GameEnums.CharacterState.ATTACKING
+		]:
 			velocity.x = 0
 			velocity.z = 0
 			return
+
+	# ――― ステップ実行中 ―――
+	if current_state == State.STEP:
+		_step_timer -= delta
+		# 前半は無敵（Hurtbox を無効化）、後半は有効に戻す
+		_set_hurtbox_enabled(_step_timer <= step_duration * 0.5)
+		var step_speed := step_distance / step_duration
+		velocity.x = _step_direction.x * step_speed
+		velocity.z = _step_direction.z * step_speed
+		if _step_timer <= 0.0:
+			_set_hurtbox_enabled(true)
+			var end_input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+			if end_input.length_squared() > 0.01:
+				_change_state(State.WALK)
+			else:
+				velocity.x = 0
+				velocity.z = 0
+				_change_state(State.IDLE)
+		return
 
 	var is_busy := current_state in [
 		State.ATTACK_LIGHT, State.ATTACK_HEAVY,
 		State.GRAPPLE, State.HIT, State.DOWN, State.GRAPPLE_LOCK
 	]
-
-	# ジャンプ
-	if Input.is_action_just_pressed("jump") and is_on_floor() and not is_busy:
-		velocity.y = jump_velocity
-		_change_state(State.JUMP)
-		return
 
 	# ブロック中は移動しない
 	if Input.is_action_pressed("block") and is_on_floor() and not is_busy:
@@ -196,6 +230,26 @@ func _handle_movement(delta: float) -> void:
 	# WASD / 左スティックの入力を取得 (2D Vector)
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 
+	# ――― ステップ発動チェック ―――
+	if Input.is_action_just_pressed("run") and _step_cooldown_timer <= 0.0:
+		# スタミナ（回復可能HP）が足りる場合のみ発動
+		if consume_stamina(step_stamina_cost):
+			var forward := global_transform.basis.z
+			var right   := -global_transform.basis.x
+			if input_dir.length_squared() > 0.01:
+				# 移動キーがある → その方向にステップ
+				_step_direction = (forward * (-input_dir.y) + right * input_dir.x).normalized()
+			else:
+				# 移動キーなし → 後方（相手から離れる方向）にステップ
+				_step_direction = -forward
+			_step_timer = step_duration
+			_step_cooldown_timer = step_cooldown
+			_set_hurtbox_enabled(false)  # 即座に無敵開始
+			_spawn_step_effect(global_position, _step_direction)
+			_change_state(State.STEP)
+			return
+
+	# ――― 通常移動 ―――
 	if input_dir.length_squared() < 0.01:
 		velocity.x = 0
 		velocity.z = 0
@@ -204,29 +258,71 @@ func _handle_movement(delta: float) -> void:
 		return
 
 	# キャラは常に相手を向いているため、キャラ自身のbasisを移動基準に使う
-	# モデル前方 = +Z local（相手方向）、+X local = 右方向
-	# input_dir.y: W = -1（前進）、S = +1（後退）
-	# input_dir.x: A = -1（左）、D = +1（右）
-	var forward  := global_transform.basis.z   # +Z = モデル前方（相手方向）
-	var right    := -global_transform.basis.x  # -X = 画面上の右方向
+	# basis.z = モデル前方（相手方向）、-basis.x = 画面上の右方向
+	var forward  := global_transform.basis.z
+	var right    := -global_transform.basis.x
 	var move_dir := (forward * (-input_dir.y) + right * input_dir.x).normalized()
 
-	var is_running := false
-	if Input.is_action_pressed("run") and input_dir.length_squared() > 0.01:
-		if consume_stamina(20.0 * delta):
-			is_running = true
-
-	var speed = run_speed if is_running else walk_speed
-
-	velocity.x = move_dir.x * speed
-	velocity.z = move_dir.z * speed
-
-	# 向きは _face_opponent() が制御するためここでは変更しない
+	velocity.x = move_dir.x * walk_speed
+	velocity.z = move_dir.z * walk_speed
 
 	if is_on_floor():
-		_change_state(State.RUN if is_running else State.WALK)
+		_change_state(State.WALK)
 	elif velocity.y < 0:
 		_change_state(State.FALL)
+
+# ----------------------------------------------------------
+# ステップ無敵：HitboxManager の Hurtbox の monitorable を切り替える
+# ----------------------------------------------------------
+func _set_hurtbox_enabled(enabled: bool) -> void:
+	var hurtbox := get_node_or_null("CombatController/HitboxManager/Hurtbox")
+	if hurtbox is Area3D:
+		(hurtbox as Area3D).monitorable = enabled
+
+# ----------------------------------------------------------
+# ステップエフェクト
+# 将来の本格エフェクト差し替えポイント：
+#   _spawn_step_trail() を差し替えるか、3Dモデルを別途 add_child するだけで対応可能
+# ----------------------------------------------------------
+func _spawn_step_effect(pos: Vector3, dir: Vector3) -> void:
+	_spawn_step_trail(pos, dir)
+
+func _spawn_step_trail(pos: Vector3, dir: Vector3) -> void:
+	if dir.length_squared() < 0.01:
+		return
+
+	# キャラの右方向（ラインを左右にオフセットするため）
+	var right := dir.cross(Vector3.UP).normalized()
+
+	# 3本の残像ラインを左・中・右にオフセットして生成（index 0,1,2 → offset -0.18, 0.0, +0.18）
+	for idx in 3:
+		var off: float = (idx - 1) * 0.18
+
+		var mesh_inst := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = Vector3(0.03, 0.03, 0.45)  # 細長い箱（移動線）
+		mesh_inst.mesh = box
+
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.75, 0.9, 1.0, 0.65)
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.cull_mode    = BaseMaterial3D.CULL_DISABLED
+		mesh_inst.material_override = mat
+
+		get_tree().root.add_child(mesh_inst)
+
+		# ステップ方向の後方からやや浮かせた位置に配置
+		var spawn_pos := pos + Vector3(0, 1.0, 0) + right * off - dir * 0.3
+		mesh_inst.global_position = spawn_pos
+
+		# 移動方向を向かせる
+		mesh_inst.look_at(spawn_pos + dir, Vector3.UP)
+
+		# 0.2秒でフェードアウトして自動削除
+		var tween := mesh_inst.create_tween()
+		tween.tween_property(mat, "albedo_color:a", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tween.tween_callback(mesh_inst.queue_free)
 
 # ----------------------------------------------------------
 # 攻撃・アクション入力（戦闘アクションは InputHandler → CombatController で処理）
@@ -245,8 +341,8 @@ func _change_state(new_state: State) -> void:
 	current_state = new_state
 	_state_timer = 0.0
 
-	# RUN 中はスタミナ回復を停止
-	is_stamina_regen_active = not (current_state == State.RUN)
+	# STEP 中はスタミナ回復を停止
+	is_stamina_regen_active = not (current_state == State.STEP)
 
 # ----------------------------------------------------------
 # アニメーション更新
@@ -268,19 +364,17 @@ func _update_animation() -> void:
 	match current_state:
 		State.IDLE: anim_state.travel("Idle")
 		State.WALK: anim_state.travel("Walk")
+		State.STEP: anim_state.travel("Walk")  # 専用モーション追加まで Walk 流用
 		State.RUN:  anim_state.travel("Run")
-		State.JUMP: anim_state.travel("JumpUp")
-		State.FALL: anim_state.travel("JumpDown")
-
-	# 着地したら IDLE へ
-	if current_state == State.FALL and is_on_floor():
-		_change_state(State.IDLE)
 
 # ----------------------------------------------------------
 # クールダウン
 # ----------------------------------------------------------
 func _tick_cooldowns(delta: float) -> void:
 	_state_timer += delta
+
+	if _step_cooldown_timer > 0.0:
+		_step_cooldown_timer -= delta
 
 	# 攻撃状態の踏み込み減衰（旧アニメーション互換）
 	if current_state in [State.ATTACK_LIGHT, State.ATTACK_HEAVY, State.GRAPPLE]:
@@ -299,6 +393,9 @@ func take_damage(_amount: int, knockback_dir: Vector3 = Vector3.ZERO) -> void:
 # ----------------------------------------------------------
 # 掴み・グラップル用インターフェース
 # ----------------------------------------------------------
+func is_stepping() -> bool:
+	return current_state == State.STEP
+
 func exit_grapple_lock() -> void:
 	# FightManager._on_grapple_ended() から呼ばれる旧互換インターフェース
 	if current_state == State.GRAPPLE_LOCK:
