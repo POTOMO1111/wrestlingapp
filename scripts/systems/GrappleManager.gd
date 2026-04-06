@@ -29,12 +29,12 @@ var dominance: float = 0.5
 
 const DOMINANCE_GAIN_PER_INPUT: float = 0.08
 const GRAPPLE_FINISH_DAMAGE:    float = 20.0   # 勝敗決定時の永続ダメージ
-const GRAPPLE_CAM_DISTANCE:     float = 2.0    # グラップル中の SpringArm 長さ
 const HP_EQUAL_EPSILON:         float = 1.0    # 「HP等しい」とみなす閾値
+const GRAPPLE_CAM_FOV:          float = 55.0   # グラップルカメラの視野角
 
 var _initiator_input_this_frame: bool  = false
 var _receiver_input_this_frame:  bool  = false
-var _original_spring_length:     float = 5.0   # 復元用
+var _grapple_camera:             Camera3D = null  # グラップル専用サイドカメラ
 var is_active: bool = false
 
 signal grapple_ended(winner: Node, loser: Node)
@@ -198,28 +198,52 @@ func _set_regen_paused(paused: bool) -> void:
 			hc.set_regen_paused(paused)
 
 # ----------------------------------------------------------
-# カメラ操作（グラップル専用近距離視点）
+# カメラ操作（グラップル専用サイドカメラ）
 # ----------------------------------------------------------
 func _adjust_camera(enable: bool) -> void:
-	var spring_arm := _find_spring_arm()
-	if spring_arm == null:
-		return
 	if enable:
-		_original_spring_length = spring_arm.spring_length
-		var tw := create_tween()
-		tw.tween_property(spring_arm, "spring_length", GRAPPLE_CAM_DISTANCE, 0.3) \
-			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_create_grapple_camera()
 	else:
-		var tw := create_tween()
-		tw.tween_property(spring_arm, "spring_length", _original_spring_length, 0.4) \
-			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		_destroy_grapple_camera()
 
-func _find_spring_arm() -> SpringArm3D:
-	# PlayerController._defer_detach_camera() によりシーンルート直下に移動済み
+func _create_grapple_camera() -> void:
+	var i3d := grapple_initiator as Node3D
+	var r3d := grapple_receiver  as Node3D
+	if i3d == null or r3d == null:
+		return
+
+	var p1_pos := i3d.global_position
+	var p2_pos := r3d.global_position
+	var mid    := (p1_pos + p2_pos) * 0.5
+
+	# 両者がちょうど視野の両端に収まる距離（キャラ間距離の2倍＋余裕）
+	var fighters_dist := p1_pos.distance_to(p2_pos)
+	var cam_dist: float = maxf(fighters_dist * 2.2, 3.5)
+
+	# ステージ中央 (x=0) に近い側から X 方向に配置
+	# mid.x >= 0 → -X 側、mid.x < 0 → +X 側
+	var side_sign := -1.0 if mid.x >= 0.0 else 1.0
+	var cam_pos   := Vector3(mid.x + side_sign * cam_dist, mid.y + 1.6, mid.z)
+	var look_at_pos := Vector3(mid.x, mid.y + 1.0, mid.z)
+
+	_grapple_camera = Camera3D.new()
+	_grapple_camera.fov = GRAPPLE_CAM_FOV
+	get_tree().root.add_child(_grapple_camera)
+	_grapple_camera.global_position = cam_pos
+	_grapple_camera.look_at(look_at_pos, Vector3.UP)
+	_grapple_camera.current = true
+
+func _destroy_grapple_camera() -> void:
+	# SpringArm 内の主カメラを再び有効化
 	for node in get_tree().root.get_children():
 		if node is SpringArm3D:
-			return node as SpringArm3D
-	return null
+			var main_cam := node.get_node_or_null("Camera3D") as Camera3D
+			if main_cam:
+				main_cam.current = true
+			break
+	if _grapple_camera:
+		_grapple_camera.queue_free()
+		_grapple_camera = null
 
 # ----------------------------------------------------------
 # ユーティリティ

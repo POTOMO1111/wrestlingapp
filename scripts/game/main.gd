@@ -29,6 +29,7 @@ func _spawn_characters() -> void:
 	p1.is_dummy  = false
 	p1.name      = "Player1"
 	p1.transform.origin = Vector3(0, 1.2, 2.0)
+	p1.rotation.y = PI  # P2（-Z方向）を向く
 	add_child(p1)
 
 	# カメラを有効化
@@ -44,7 +45,7 @@ func _spawn_characters() -> void:
 	p2.player_id = 2
 	p2.name      = "Player2"
 	p2.transform.origin = Vector3(0, 1.2, -2.0)
-	p2.rotation.y = PI
+	p2.rotation.y = 0  # P1（+Z方向）を向く
 	add_child(p2)
 
 	# 両キャラに CombatController サブツリーを追加
@@ -73,6 +74,10 @@ func _spawn_characters() -> void:
 			p2.initialize_ai(p1, p2_combat, p1_combat)
 		else:
 			push_error("main.gd: CombatController が見つからず CPU AI を初期化できませんでした")
+
+	# 互いに相手を参照設定（常時相手方向を向く制御のため）
+	p1.opponent = p2
+	p2.opponent = p1
 
 	# FightManager にキャラクターを登録
 	fight_manager.set_fighters(p1, p2)

@@ -32,14 +32,6 @@ extends Resource
 ## ユーティリティスコア最高の技を選ぶ確率。
 ## 残りの確率で重み付きランダム選択にフォールバック。
 
-# --- 思考速度 ---
-@export_group("思考速度")
-@export var think_interval_min: float = 0.3
-## 思考サイクルの最小間隔（秒）。
-
-@export var think_interval_max: float = 0.8
-## 思考サイクルの最大間隔（秒）。
-
 # --- 戦略深度 ---
 @export_group("戦略深度")
 @export var enables_body_part_targeting: bool = false
@@ -59,3 +51,8 @@ extends Resource
 
 @export_range(0.0, 1.0) var grapple_initiate_accuracy: float = 0.5
 ## グラップル開始の適切なタイミング判定の精度。高いほど相手の隙を正確に突く。
+
+# --- フェーズ制御 ---
+@export_group("フェーズ制御")
+@export var reposition_duration: float = 0.7
+## REPOSITIONフェーズの持続時間（秒）。短いほど立て直しが速く攻撃的になる。

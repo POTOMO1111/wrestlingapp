@@ -17,7 +17,6 @@ extends "res://scripts/characters/CharacterBase.gd"
 @export var run_speed     : float = 8.0
 @export var jump_velocity : float = 6.0
 @export var gravity_scale : float = 2.0
-@export var camera_rotate_speed : float = 90.0  # 度/秒
 
 @export var is_dummy : bool = false
 
@@ -32,9 +31,12 @@ var current_state : State = State.IDLE
 var _attack_pending : bool = false
 var _state_timer : float = 0.0
 
-# カメラのY軸回転角度（ラジアン）
+# 相手キャラへの参照（常時相手方向を向く制御に使用）。main.gd で代入。
+var opponent: CharacterBody3D = null
+
+# カメラのY軸回転角度（ラジアン）— 毎フレーム rotation.y に追従する
 var _camera_yaw : float = 0.0
-var _spring_arm_pitch : float = deg_to_rad(-25.0) # 従来通り見下ろし角度(-25度)を固定でセット
+var _spring_arm_pitch : float = deg_to_rad(-25.0) # 見下ろし角度(-25度)固定
 
 # ----------------------------------------------------------
 # ノード参照
@@ -109,7 +111,7 @@ func _physics_process(delta: float) -> void:
 
 	_tick_cooldowns(delta)
 	_apply_gravity(delta)
-	_handle_camera_rotation(delta)
+	_face_opponent(delta)
 	_handle_movement(delta)
 	_handle_actions()
 	move_and_slide()
@@ -125,18 +127,17 @@ func _apply_gravity(delta: float) -> void:
 		velocity.y -= gravity * gravity_scale * delta
 
 # ----------------------------------------------------------
-# カメラ回転（右スティック・左右キー）
+# 常時相手方向を向く（P1・CPUController 共通）
 # ----------------------------------------------------------
-func _handle_camera_rotation(delta: float) -> void:
-	if is_dummy: return
-	if not spring_arm:
+func _face_opponent(delta: float) -> void:
+	if not opponent:
 		return
-	
-	var rot_input := 0.0
-	if InputMap.has_action("camera_left") and InputMap.has_action("camera_right"):
-		rot_input = Input.get_axis("camera_left", "camera_right")
-	
-	_camera_yaw -= deg_to_rad(rot_input * camera_rotate_speed * delta)
+	var dir := opponent.global_position - global_position
+	dir.y = 0.0
+	if dir.length_squared() < 0.01:
+		return
+	var target_angle := atan2(dir.x, dir.z)
+	rotation.y = lerp_angle(rotation.y, target_angle, 15.0 * delta)
 
 # ----------------------------------------------------------
 # SpringArm をキャラに数学的に追従させる
@@ -144,12 +145,14 @@ func _handle_camera_rotation(delta: float) -> void:
 func _update_spring_arm_position() -> void:
 	if is_dummy or not spring_arm or not spring_arm.is_inside_tree():
 		return
-		
-	# Basis（回転行列）をクォータニオンで安全に構築し直し、オイラー角の反転特異点を回避
-	var q_yaw = Quaternion(Vector3.UP, _camera_yaw)
+
+	# キャラの向き（常に相手方向）にカメラを追従させる
+	# SpringArm は -Z 方向に腕を伸ばすため、キャラ背後に配置するには PI を加算する
+	_camera_yaw = rotation.y + PI
+	var q_yaw   = Quaternion(Vector3.UP, _camera_yaw)
 	var q_pitch = Quaternion(Vector3.RIGHT, _spring_arm_pitch)
 	var new_basis = Basis(q_yaw * q_pitch)
-	
+
 	spring_arm.global_transform = Transform3D(new_basis, global_position + Vector3(0, 1.0, 0))
 
 # ----------------------------------------------------------
@@ -159,6 +162,15 @@ func _handle_movement(delta: float) -> void:
 	if is_dummy:
 		_apply_gravity(delta)
 		return
+
+	# グラップル中は移動禁止（入力自体は受け付け、移動のみ無効化）
+	var cc := get_node_or_null("CombatController")
+	if cc and cc.has_method("get_current_state"):
+		var cc_state: GameEnums.CharacterState = cc.get_current_state()
+		if cc_state in [GameEnums.CharacterState.GRAPPLING, GameEnums.CharacterState.GRAPPLED]:
+			velocity.x = 0
+			velocity.z = 0
+			return
 
 	var is_busy := current_state in [
 		State.ATTACK_LIGHT, State.ATTACK_HEAVY,
@@ -191,25 +203,25 @@ func _handle_movement(delta: float) -> void:
 			_change_state(State.IDLE)
 		return
 
-	# SpringArm(カメラ)のローカルbasisを使うとプレイヤー自身の回転と干渉してフィードバックループになる問題があったため、
-	# 絶対的な _camera_yaw（カメラのY軸回転角）を使用して入力を回転させます。
-	# Wキー(前)は -Z 方向なので、 Vector3(x, 0, y) がそのまま適用されます。
-	var move_dir := Vector3(input_dir.x, 0, input_dir.y).rotated(Vector3.UP, _camera_yaw).normalized()
-	
+	# キャラは常に相手を向いているため、キャラ自身のbasisを移動基準に使う
+	# モデル前方 = +Z local（相手方向）、+X local = 右方向
+	# input_dir.y: W = -1（前進）、S = +1（後退）
+	# input_dir.x: A = -1（左）、D = +1（右）
+	var forward  := global_transform.basis.z   # +Z = モデル前方（相手方向）
+	var right    := -global_transform.basis.x  # -X = 画面上の右方向
+	var move_dir := (forward * (-input_dir.y) + right * input_dir.x).normalized()
+
 	var is_running := false
 	if Input.is_action_pressed("run") and input_dir.length_squared() > 0.01:
 		if consume_stamina(20.0 * delta):
 			is_running = true
-			
+
 	var speed = run_speed if is_running else walk_speed
 
 	velocity.x = move_dir.x * speed
 	velocity.z = move_dir.z * speed
 
-	# キャラの向きを進行方向に向ける
-	if move_dir.length_squared() > 0.01:
-		var target_angle := atan2(move_dir.x, move_dir.z)
-		rotation.y = lerp_angle(rotation.y, target_angle, 10.0 * delta)
+	# 向きは _face_opponent() が制御するためここでは変更しない
 
 	if is_on_floor():
 		_change_state(State.RUN if is_running else State.WALK)

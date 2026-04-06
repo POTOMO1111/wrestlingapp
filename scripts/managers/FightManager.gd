@@ -115,9 +115,27 @@ func process_hit(
 	if dmg["permanent"] > 0.0:
 		target_health.take_damage(dmg["permanent"], GameEnums.DamageLayer.PERMANENT)
 
-	# ヒットスタン or ブロックスタン
+	# ヒットスタン or ブロックスタン（防御側）
 	target_ctrl._pending_hit_stun_frames = attack.hit_stun_frames if result != GameEnums.HitResult.BLOCKED else attack.block_stun_frames
 	target_ctrl.transition_to(GameEnums.CharacterState.HIT_STUN)
+
+	# ガード成功恩恵: 攻撃者の回復可能HPにダメージ + ノックバック + よろけ
+	if result == GameEnums.HitResult.BLOCKED:
+		var guard_dmg := attack.recoverable_damage * 0.5
+		attacker_health.take_damage(guard_dmg, GameEnums.DamageLayer.RECOVERABLE)
+
+		# 攻撃者を標的から遠ざける方向へノックバック
+		var attacker_node := attacker_ctrl.get_parent() as CharacterBody3D
+		var target_node   := target as Node3D
+		if attacker_node and target_node:
+			var kb_dir := attacker_node.global_position - target_node.global_position
+			kb_dir.y = 0.0
+			if kb_dir.length_squared() > 0.01:
+				attacker_node.velocity += kb_dir.normalized() * 4.0
+
+		# 攻撃者によろけモーション（ブロックスタンの半分）
+		attacker_ctrl._pending_hit_stun_frames = max(ceili(attack.block_stun_frames * 0.5), 5)
+		attacker_ctrl.transition_to(GameEnums.CharacterState.HIT_STUN)
 
 # ----------------------------------------------------------
 # グラップル開始処理（CombatController._on_grapple_initiated から呼ばれる）
