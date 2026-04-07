@@ -37,6 +37,7 @@ var _receiver_input_this_frame:  bool  = false
 var _grapple_camera:             Camera3D = null  # グラップル専用サイドカメラ
 var is_active: bool = false
 
+signal grapple_started(initiator: Node, receiver: Node)
 signal grapple_ended(winner: Node, loser: Node)
 signal dominance_changed(new_dominance: float)
 
@@ -92,6 +93,8 @@ func start_grapple(initiator: Node, receiver: Node, grapple_data: GrappleData) -
 	# カメラをグラップル専用の近距離視点に変更
 	_adjust_camera(true)
 
+	grapple_started.emit(initiator, receiver)
+
 # ----------------------------------------------------------
 # グラップル入力登録（各キャラの InputHandler / CPUController から呼ぶ）
 # ----------------------------------------------------------
@@ -129,11 +132,14 @@ func register_input(player_id: GameEnums.PlayerID) -> void:
 
 func _process_dominance(delta: float) -> void:
 	var rate := _get_decay_rate()
-	# 入力がない側は dominance が 0.0 に向かって減衰（CPU の抵抗をdecayで表現）
+	# 攻め側が入力しない → dominance が 0.0 方向へ減衰（連打しないと押し負ける）
+	# 受け側が入力しない → dominance が 1.0 方向へ減衰（連打しないと押し込まれる）
+	# 両者とも入力なし → それぞれ1回ずつ（合計2回の move_toward）は過大なため
+	# 攻め側入力なし: 0.0 方向、受け側入力なし: 1.0 方向 でバランスを取る
 	if not _initiator_input_this_frame:
 		dominance = move_toward(dominance, 0.0, rate * delta)
 	if not _receiver_input_this_frame:
-		dominance = move_toward(dominance, 0.0, rate * delta)
+		dominance = move_toward(dominance, 1.0, rate * delta)
 	dominance_changed.emit(dominance)
 
 	# 勝利条件チェック（decay により端点到達した場合）

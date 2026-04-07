@@ -31,23 +31,26 @@ offset_bottom = 88.0
 grow_horizontal = 2
 grow_vertical = 1
 
-[node name="P1_Panel" type="VBoxContainer" parent="TopBar"]
+[node name="P1_PanelBG" type="PanelContainer" parent="TopBar"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="P1_Name" type="Label" parent="TopBar/P1_Panel"]
+[node name="P1_Panel" type="VBoxContainer" parent="TopBar/P1_PanelBG"]
+layout_mode = 2
+
+[node name="P1_Name" type="Label" parent="TopBar/P1_PanelBG/P1_Panel"]
 layout_mode = 2
 text = "PLAYER 1"
 horizontal_alignment = 0
 
-[node name="P1_PermanentHP" type="ProgressBar" parent="TopBar/P1_Panel"]
+[node name="P1_PermanentHP" type="ProgressBar" parent="TopBar/P1_PanelBG/P1_Panel"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 18)
 max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="P1_RecoverableHP" type="ProgressBar" parent="TopBar/P1_Panel"]
+[node name="P1_RecoverableHP" type="ProgressBar" parent="TopBar/P1_PanelBG/P1_Panel"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 12)
 max_value = 100.0
@@ -72,23 +75,26 @@ text = "ROUND 1"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 16
 
-[node name="P2_Panel" type="VBoxContainer" parent="TopBar"]
+[node name="P2_PanelBG" type="PanelContainer" parent="TopBar"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="P2_Name" type="Label" parent="TopBar/P2_Panel"]
+[node name="P2_Panel" type="VBoxContainer" parent="TopBar/P2_PanelBG"]
+layout_mode = 2
+
+[node name="P2_Name" type="Label" parent="TopBar/P2_PanelBG/P2_Panel"]
 layout_mode = 2
 text = "PLAYER 2"
 horizontal_alignment = 2
 
-[node name="P2_PermanentHP" type="ProgressBar" parent="TopBar/P2_Panel"]
+[node name="P2_PermanentHP" type="ProgressBar" parent="TopBar/P2_PanelBG/P2_Panel"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 18)
 max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="P2_RecoverableHP" type="ProgressBar" parent="TopBar/P2_Panel"]
+[node name="P2_RecoverableHP" type="ProgressBar" parent="TopBar/P2_PanelBG/P2_Panel"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 12)
 max_value = 100.0
@@ -102,9 +108,9 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -150.0
+offset_left = -180.0
 offset_top = -70.0
-offset_right = 150.0
+offset_right = 180.0
 offset_bottom = -10.0
 
 [node name="DominanceLabel" type="Label" parent="GrapplePanel"]
@@ -113,10 +119,28 @@ text = "GRAPPLE"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 14
 
-[node name="DominanceBar" type="ProgressBar" parent="GrapplePanel"]
+[node name="BarRow" type="HBoxContainer" parent="GrapplePanel"]
 layout_mode = 2
-custom_minimum_size = Vector2(300, 20)
+
+[node name="InitiatorLabel" type="Label" parent="GrapplePanel/BarRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 0)
+text = "P1"
+horizontal_alignment = 0
+theme_override_font_sizes/font_size = 13
+
+[node name="DominanceBar" type="ProgressBar" parent="GrapplePanel/BarRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(180, 22)
 min_value = 0.0
 max_value = 1.0
 value = 0.5
 show_percentage = false
+
+[node name="ReceiverLabel" type="Label" parent="GrapplePanel/BarRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 0)
+text = "P2"
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 13
